@@ -1,0 +1,32 @@
+[
+  {
+    "ruleId": "http-001",
+    "alertType": "SQL注入",
+    "pattern": "(?i)(select|union|insert|update|delete|drop).*from",
+    "description": "可能的SQL注入尝试"
+  },
+  {
+    "ruleId": "http-002",
+    "alertType": "XSS攻击",
+    "pattern": "(?i)(<script>|javascript:|onerror=|onload=)",
+    "description": "可能的跨站脚本攻击尝试"
+  },
+  {
+    "ruleId": "http-003",
+    "alertType": "路径遍历",
+    "pattern": "(?i)(\\.\\.\/|\\.\\./|\\.\\./)",
+    "description": "可能的路径遍历攻击尝试"
+  },
+  {
+    "ruleId": "http-004",
+    "alertType": "敏感信息泄露",
+    "pattern": "(?i)(password=|token=|api_key=|secret=)",
+    "description": "敏感信息可能通过HTTP明文传输"
+  },
+  {
+    "ruleId": "http-005",
+    "alertType": "命令注入",
+    "pattern": "(?i)(;|&&|\\|\\||`|\\$\\()",
+    "description": "可能的命令注入尝试"
+  }
+]

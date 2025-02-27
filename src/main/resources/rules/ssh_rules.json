@@ -1,0 +1,32 @@
+[
+  {
+    "ruleId": "ssh-001",
+    "alertType": "SSH登录",
+    "pattern": "type=USER_AUTH.*success=yes",
+    "description": "成功的SSH登录"
+  },
+  {
+    "ruleId": "ssh-002",
+    "alertType": "SSH登录失败",
+    "pattern": "type=USER_AUTH.*success=no",
+    "description": "失败的SSH登录尝试"
+  },
+  {
+    "ruleId": "ssh-003",
+    "alertType": "敏感文件访问",
+    "pattern": "type=PATH.*(path=/etc/shadow|path=/etc/passwd|path=/etc/sudoers)",
+    "description": "访问敏感系统文件"
+  },
+  {
+    "ruleId": "ssh-004",
+    "alertType": "命令执行",
+    "pattern": "type=EXECVE.*cmd=",
+    "description": "执行命令"
+  },
+  {
+    "ruleId": "ssh-005",
+    "alertType": "权限提升",
+    "pattern": "type=CRED_ACQ.*uid=0",
+    "description": "获取root权限"
+  }
+]
