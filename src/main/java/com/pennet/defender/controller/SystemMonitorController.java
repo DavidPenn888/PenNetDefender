@@ -1,5 +1,6 @@
 package com.pennet.defender.controller;
 
+import com.pennet.defender.dto.ThresholdDTO;
 import com.pennet.defender.service.SystemMonitorService;
 import com.pennet.defender.model.SystemStatus;
 import com.pennet.defender.model.ThresholdAlert;
@@ -22,15 +23,26 @@ public class SystemMonitorController {
 
     @GetMapping("/status")
     public List<SystemStatus> getStatus(@RequestParam String timeline) {
-        if ("day".equalsIgnoreCase(timeline)) {
-            return systemMonitorService.getStatusLast24Hours();
+//        if ("day".equalsIgnoreCase(timeline)) {
+//            return systemMonitorService.getStatusLast24Hours();
+//        }
+        if ("recent".equalsIgnoreCase(timeline)) {
+            return systemMonitorService.getRecentStatus();
         }
         return null; // Other time ranges can be added
     }
 
+//    @GetMapping("/get_threshold")
+//    public ThresholdConfig getThreshold() {
+//        return thresholdConfig;
+//    }
     @GetMapping("/get_threshold")
-    public ThresholdConfig getThreshold() {
-        return thresholdConfig;
+    public ThresholdDTO getThreshold() {
+        return new ThresholdDTO(
+                thresholdConfig.getCpuThreshold(),
+                thresholdConfig.getMemoryThreshold(),
+                thresholdConfig.getStorageThreshold()
+        );
     }
 
     @PostMapping("/change_threshold")

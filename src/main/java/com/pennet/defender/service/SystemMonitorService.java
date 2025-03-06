@@ -46,10 +46,13 @@ public class SystemMonitorService {
         systemStatusRepository.save(status);
     }
 
-    public List<SystemStatus> getStatusLast24Hours() {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime dayAgo = now.minusHours(24);
-        return systemStatusRepository.findHighestUsagePerHourLast24Hours(dayAgo, now);
+//    public List<SystemStatus> getStatusLast24Hours() {
+//        LocalDateTime now = LocalDateTime.now();
+//        LocalDateTime dayAgo = now.minusHours(24);
+//        return systemStatusRepository.findHighestUsagePerHourLast24Hours(dayAgo, now);
+//    }
+    public List<SystemStatus> getRecentStatus() {
+        return systemStatusRepository.findTop20ByOrderByTimestampDesc();
     }
 
     public Page<ThresholdAlert> getThresholdAlerts(String alertType, int page, int size) {
