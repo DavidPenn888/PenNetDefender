@@ -12,7 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/traffics")
+@RequestMapping("/api/traffics")
 public class SecurityMonitorController {
 
     @Autowired
@@ -21,7 +21,7 @@ public class SecurityMonitorController {
     @Autowired
     private SecurityMonitorConfig securityMonitorConfig;
 
-    @GetMapping("/ssh_http_alert")
+    @GetMapping("/alert")
     public Map<String, Object> getSecurityAlerts(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "30") int size,

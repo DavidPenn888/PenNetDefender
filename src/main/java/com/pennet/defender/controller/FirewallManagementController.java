@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/firewall")
+@RequestMapping("/api/firewall")
 public class FirewallManagementController {
 
     @Autowired

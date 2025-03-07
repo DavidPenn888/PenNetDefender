@@ -225,7 +225,7 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
 //    }
     private void startMitmProxy() throws IOException {
         String mitmPath = "/usr/local/bin/mitmdump"; // 替换为你的实际路径
-        mitmProxyProcess = Runtime.getRuntime().exec(mitmPath + " --mode regular@8082 -s /tmp/mitmproxy_script.py");
+        mitmProxyProcess = Runtime.getRuntime().exec(mitmPath + " --mode regular@8082 -s /app/mitmproxy_script.py");
         logger.info("已启动 mitmproxy 代理");
     }
 

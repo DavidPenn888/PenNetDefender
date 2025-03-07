@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/port")
+@RequestMapping("/api/port")
 public class PortQueryController {
 
     @Autowired

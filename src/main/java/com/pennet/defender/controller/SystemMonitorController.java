@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/system")
+@RequestMapping("/api/system")
 public class SystemMonitorController {
 
     @Autowired
