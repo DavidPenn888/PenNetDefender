@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
+@RequestMapping("/traffics")
 public class SecurityMonitorController {
 
     @Autowired
@@ -37,7 +38,7 @@ public class SecurityMonitorController {
         return response;
     }
 
-    @GetMapping("/monitoring/status")
+    @GetMapping("/status")
     public Map<String, Boolean> getMonitoringStatus() {
         Map<String, Boolean> status = new HashMap<>();
         status.put("sshMonitoring", securityMonitorService.isSshMonitoringRunning());
@@ -45,7 +46,7 @@ public class SecurityMonitorController {
         return status;
     }
 
-    @PostMapping("/monitoring/ssh/enable")
+    @PostMapping("/ssh/enable")
     public ResponseEntity<Map<String, Object>> enableSshMonitoring() {
         securityMonitorService.startSshMonitoring();
         securityMonitorConfig.setSshMonitorEnabled(true);
@@ -58,7 +59,7 @@ public class SecurityMonitorController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/monitoring/ssh/disable")
+    @PostMapping("/ssh/disable")
     public ResponseEntity<Map<String, Object>> disableSshMonitoring() {
         securityMonitorService.stopSshMonitoring();
         securityMonitorConfig.setSshMonitorEnabled(false);
@@ -71,7 +72,7 @@ public class SecurityMonitorController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/monitoring/http/enable")
+    @PostMapping("/http/enable")
     public ResponseEntity<Map<String, Object>> enableHttpMonitoring() {
         securityMonitorService.startHttpMonitoring();
         securityMonitorConfig.setHttpMonitorEnabled(true);
@@ -84,7 +85,7 @@ public class SecurityMonitorController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/monitoring/http/disable")
+    @PostMapping("/http/disable")
     public ResponseEntity<Map<String, Object>> disableHttpMonitoring() {
         securityMonitorService.stopHttpMonitoring();
         securityMonitorConfig.setHttpMonitorEnabled(false);

@@ -150,10 +150,19 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
         return httpMonitorRunning.get();
     }
 
+//    @Override
+//    public void saveAlert(SecurityAlert alert) {
+//        alertRepository.save(alert);
+//    }
     @Override
     public void saveAlert(SecurityAlert alert) {
+        // 确保 detailInfo 不超过 255 个字符
+        if (alert.getDetailInfo() != null && alert.getDetailInfo().length() > 255) {
+            alert.setDetailInfo(alert.getDetailInfo().substring(0, 250) + "...");
+        }
         alertRepository.save(alert);
     }
+
 
     @Override
     public Page<SecurityAlert> getAlerts(int page, int size, Integer detectWay, String alertType) {
@@ -208,11 +217,16 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
         }
     }
 
-    // TODO /tmp/mitmproxy_script.py 没有配置
+    // TODO /tmp/mitmproxy_script.py 配置好等待测试
+//    private void startMitmProxy() throws IOException {
+//        // 启动mitmproxy代理服务器
+//        mitmProxyProcess = Runtime.getRuntime().exec("mitmdump -s /tmp/mitmproxy_script.py --set flow_detail=3");
+//        logger.info("已启动mitmproxy代理");
+//    }
     private void startMitmProxy() throws IOException {
-        // 启动mitmproxy代理服务器
-        mitmProxyProcess = Runtime.getRuntime().exec("mitmdump -s /tmp/mitmproxy_script.py --set flow_detail=3");
-        logger.info("已启动mitmproxy代理");
+        String mitmPath = "/usr/local/bin/mitmdump"; // 替换为你的实际路径
+        mitmProxyProcess = Runtime.getRuntime().exec(mitmPath + " --mode regular@8082 -s /tmp/mitmproxy_script.py");
+        logger.info("已启动 mitmproxy 代理");
     }
 
     private void stopMitmProxy() {
