@@ -3,6 +3,7 @@ package com.pennet.defender.service.impl;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pennet.defender.config.SecurityMonitorConfig;
+import com.pennet.defender.config.WebHookConfig;
 import com.pennet.defender.model.SecurityAlert;
 import com.pennet.defender.model.SecurityRule;
 import com.pennet.defender.repository.SecurityAlertRepository;
@@ -22,12 +23,20 @@ import javax.annotation.PreDestroy;
 import java.io.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestTemplate;
+
 
 @Service
 public class SecurityMonitorServiceImpl implements SecurityMonitorService {
@@ -41,6 +50,12 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
 
     @Autowired
     private SecurityAlertRepository alertRepository;
+
+    @Autowired
+    private WebHookConfig webHookConfig;
+
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     private final ExecutorService executorService = Executors.newFixedThreadPool(2);
     private final AtomicBoolean sshMonitorRunning = new AtomicBoolean(false);
@@ -160,6 +175,10 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
         if (alert.getDetailInfo() != null && alert.getDetailInfo().length() > 255) {
             alert.setDetailInfo(alert.getDetailInfo().substring(0, 250) + "...");
         }
+
+        // 先发送WebHook通知
+        sendWebHookNotification(alert);
+
         alertRepository.save(alert);
     }
 
@@ -290,5 +309,59 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
         stopSshMonitoring();
         stopHttpMonitoring();
         executorService.shutdown();
+    }
+
+
+    //配置发送通知的代码
+//    @Async
+    private void sendWebHookNotification(SecurityAlert alert) {
+        String message = formatAlertMessage(alert);
+
+        if (webHookConfig.isWechatEnable()) {
+            sendToWebHook(webHookConfig.getWechatWebHook(), formatWechatMessage(message));
+        }
+        if (webHookConfig.isDingdingEnable()) {
+            sendToWebHook(webHookConfig.getDingdingWebhook(), formatDingdingMessage(message));
+        }
+    }
+
+    private void sendToWebHook(String url, Map<String, Object> messagePayload) {
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(messagePayload, headers);
+            restTemplate.postForEntity(url, request, String.class);
+            logger.info("告警已发送到 WebHook: {}", url);
+        } catch (Exception e) {
+            logger.error("发送 WebHook 失败", e);
+        }
+    }
+
+    private String formatAlertMessage(SecurityAlert alert) {
+        return "\uD83D\uDEA8 系统告警通知 \uD83D\uDEA8\n"
+                + "**告警类型:** " + alert.getAlertType() + "\n"
+                + "**检测方式:** " + (alert.getDetectWay() == 1 ? "SSH监控" : "HTTP监控") + "\n"
+                + "**用户:** " + (alert.getUserInfo() != null ? alert.getUserInfo() : "未知") + "\n"
+                + "**IP:** " + (alert.getIpInfo() != null ? alert.getIpInfo() : "未知") + "\n"
+                + "**详细信息:** " + alert.getDetailInfo() + "\n"
+                + "**时间:** " + alert.getTimestamp();
+    }
+
+    private Map<String, Object> formatWechatMessage(String content) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("msgtype", "text");
+        Map<String, String> text = new HashMap<>();
+        text.put("content", content);
+        message.put("text", text);
+        return message;
+    }
+
+    private Map<String, Object> formatDingdingMessage(String content) {
+        Map<String, Object> message = new HashMap<>();
+        message.put("msgtype", "text");
+        Map<String, String> text = new HashMap<>();
+        text.put("content", content);
+        message.put("text", text);
+        return message;
     }
 }

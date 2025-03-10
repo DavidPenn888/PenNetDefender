@@ -1,6 +1,5 @@
 package com.pennet.defender.controller;
 
-import com.pennet.defender.dto.ThresholdDTO;
 import com.pennet.defender.service.SystemMonitorService;
 import com.pennet.defender.model.SystemStatus;
 import com.pennet.defender.model.ThresholdAlert;
@@ -33,17 +32,9 @@ public class SystemMonitorController {
         return null; // Other time ranges can be added
     }
 
-//    @GetMapping("/get_threshold")
-//    public ThresholdConfig getThreshold() {
-//        return thresholdConfig;
-//    }
     @GetMapping("/get_threshold")
-    public ThresholdDTO getThreshold() {
-        return new ThresholdDTO(
-                thresholdConfig.getCpuThreshold(),
-                thresholdConfig.getMemoryThreshold(),
-                thresholdConfig.getStorageThreshold()
-        );
+    public ThresholdConfig getThreshold() {
+        return thresholdConfig;
     }
 
     @PostMapping("/change_threshold")

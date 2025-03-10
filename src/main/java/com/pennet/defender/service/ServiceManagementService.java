@@ -27,55 +27,78 @@ public class ServiceManagementService {
     }
 
     public void refreshServices() throws IOException {
-        List<AppService> AppServices = new ArrayList<>();
-        Process process = Runtime.getRuntime().exec("systemctl list-units --type=service --all");
+        List<AppService> appServices = new ArrayList<>();
 
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+        // 获取所有服务列表
+        Process listProcess = Runtime.getRuntime().exec("systemctl list-units --type=service --output=json");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(listProcess.getInputStream()))) {
+            // 这里假设输出为JSON格式，需要添加JSON解析库如Jackson
+            // 实际上你可能需要使用systemctl -o json或类似的参数
+
+            // 或者对每个服务单独使用systemctl show来获取详细信息
+            // 下面是一个混合方法示例，先获取服务列表，再检查每个服务详情
+        }
+
+        // 获取所有服务名称
+        Process listNamesProcess = Runtime.getRuntime().exec("systemctl list-units --type=service --plain --no-legend");
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(listNamesProcess.getInputStream()))) {
             String line;
-            boolean skipHeader = true;
-
             while ((line = reader.readLine()) != null) {
-                if (skipHeader) {
-                    if (line.trim().isEmpty()) {
-                        skipHeader = false;
-                    }
-                    continue;
-                }
+                if (line.trim().isEmpty()) continue;
 
-                if (line.trim().isEmpty() || line.contains("LOAD") || line.contains("UNIT")) {
-                    continue;
-                }
-
-                String[] parts = line.trim().split("\\s+");
-                if (parts.length >= 3) {
+                // 提取第一列作为服务名
+                String[] parts = line.trim().split("\\s+", 2);
+                if (parts.length > 0) {
                     String serviceName = parts[0].replace(".service", "");
-                    String status = parts[3];
 
-                    // Get enabled status
-                    Process enabledCheck = Runtime.getRuntime().exec("systemctl is-enabled " + serviceName);
-                    BufferedReader enabledReader = new BufferedReader(new InputStreamReader(enabledCheck.getInputStream()));
-                    String enabledStatus = enabledReader.readLine();
-                    boolean isEnabled = "enabled".equals(enabledStatus);
+                    // 获取服务状态
+                    String status = getServiceStatus(serviceName);
+                    boolean isEnabled = checkIfServiceEnabled(serviceName);
 
                     AppService existingAppService = serviceRepository.findByName(serviceName);
                     if (existingAppService != null) {
                         existingAppService.setStatus(status);
                         existingAppService.setEnabled(isEnabled);
                         existingAppService.setLastUpdated(LocalDateTime.now());
-                        AppServices.add(existingAppService);
+                        appServices.add(existingAppService);
                     } else {
                         AppService newAppService = new AppService();
                         newAppService.setName(serviceName);
                         newAppService.setStatus(status);
                         newAppService.setEnabled(isEnabled);
                         newAppService.setLastUpdated(LocalDateTime.now());
-                        AppServices.add(newAppService);
+                        appServices.add(newAppService);
                     }
                 }
             }
         }
 
-        serviceRepository.saveAll(AppServices);
+        serviceRepository.saveAll(appServices);
+    }
+
+    private String getServiceStatus(String serviceName) {
+        try {
+            Process statusCheck = Runtime.getRuntime().exec("systemctl is-active " + serviceName);
+            try (BufferedReader statusReader = new BufferedReader(new InputStreamReader(statusCheck.getInputStream()))) {
+                return statusReader.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "unknown";
+        }
+    }
+    private boolean checkIfServiceEnabled(String serviceName) {
+        try {
+            Process enabledCheck = Runtime.getRuntime().exec("systemctl is-enabled " + serviceName);
+            try (BufferedReader enabledReader = new BufferedReader(new InputStreamReader(enabledCheck.getInputStream()))) {
+                String enabledStatus = enabledReader.readLine();
+                return "enabled".equals(enabledStatus);
+            }
+        } catch (IOException e) {
+            // 如果检查失败，记录日志并假设不是enabled状态
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public void startService(String serviceName) throws IOException {
