@@ -1,24 +1,28 @@
 package com.pennet.defender.model;
 
+//import jakarta.persistence.*;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "firewall_rules")
 public class FirewallRule {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
-    private String chain;
-    private String action;
-    private String protocol;
-    private String source;
-    private String destination;
-    private String port;
-    private Integer priority;
+    private String chain;       // INPUT, OUTPUT, FORWARD
+    private String action;      // ACCEPT, DROP, REJECT
+    private String protocol;    // tcp, udp, icmp, all
+    private String source;      // 源IP地址
+    private String destination; // 目标IP地址
+    private String port;        // 端口号
+    private Integer priority;   // 规则优先级
     private LocalDateTime lastUpdated;
 
+    // Getters and Setters
     public Integer getId() {
         return id;
     }

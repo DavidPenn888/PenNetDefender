@@ -18,44 +18,67 @@ public class AppServiceManagementController {
 
     @GetMapping("/list")
     public Map<String, Object> listServices(@RequestParam(defaultValue = "1") int page,
-                                            @RequestParam(defaultValue = "30") int size) throws IOException {
-        serviceManagementService.refreshServices();
-        Page<AppService> appservices = serviceManagementService.getServices(page, size);
-
-        return Map.of(
-                "totalPages", appservices.getTotalPages(),
-                "totalElements", appservices.getTotalElements(),
-                "content", appservices.getContent()
-        );
+                                            @RequestParam(defaultValue = "30") int size) {
+        try {
+            serviceManagementService.refreshServices();
+            Page<AppService> appservices = serviceManagementService.getServices(page, size);
+            return Map.of("code", 0, "data", Map.of(
+                    "totalPages", appservices.getTotalPages(),
+                    "totalElements", appservices.getTotalElements(),
+                    "content", appservices.getContent()
+            ), "message", "success");
+        } catch (IOException e) {
+            return Map.of("code", -1, "data", Map.of(), "message", e.getMessage());
+        }
     }
 
-    @PostMapping("/start/{serviceName}")
-    public Map<String, String> startService(@PathVariable String serviceName) throws IOException {
-        serviceManagementService.startService(serviceName);
-        return Map.of("status", "Service " + serviceName + " started");
+//    @PostMapping("/action/{serviceName}")
+//    public Map<String, Object> manageService(@PathVariable String serviceName, @RequestParam String action) {
+//        switch (action.toLowerCase()) {
+//            case "start":
+//                return executeServiceCommand(() -> serviceManagementService.startService(serviceName), "Service " + serviceName + " started");
+//            case "stop":
+//                return executeServiceCommand(() -> serviceManagementService.stopService(serviceName), "Service " + serviceName + " stopped");
+//            case "restart":
+//                return executeServiceCommand(() -> serviceManagementService.restartService(serviceName), "Service " + serviceName + " restarted");
+//            case "enable":
+//                return executeServiceCommand(() -> serviceManagementService.enableService(serviceName), "Service " + serviceName + " enabled for auto-start");
+//            case "disable":
+//                return executeServiceCommand(() -> serviceManagementService.disableService(serviceName), "Service " + serviceName + " disabled for auto-start");
+//            default:
+//                return Map.of("code", -1, "data", Map.of(), "message", "Invalid action: " + action);
+//        }
+//    }
+
+    @PostMapping("/action")
+    public Map<String, Object> manageService(@RequestParam String serviceName, @RequestParam String action) {
+        switch (action.toLowerCase()) {
+            case "start":
+                return executeServiceCommand(() -> serviceManagementService.startService(serviceName), "Service " + serviceName + " started");
+            case "stop":
+                return executeServiceCommand(() -> serviceManagementService.stopService(serviceName), "Service " + serviceName + " stopped");
+            case "restart":
+                return executeServiceCommand(() -> serviceManagementService.restartService(serviceName), "Service " + serviceName + " restarted");
+            case "enable":
+                return executeServiceCommand(() -> serviceManagementService.enableService(serviceName), "Service " + serviceName + " enabled for auto-start");
+            case "disable":
+                return executeServiceCommand(() -> serviceManagementService.disableService(serviceName), "Service " + serviceName + " disabled for auto-start");
+            default:
+                return Map.of("code", -1, "data", Map.of(), "message", "Invalid action: " + action);
+        }
     }
 
-    @PostMapping("/stop/{serviceName}")
-    public Map<String, String> stopService(@PathVariable String serviceName) throws IOException {
-        serviceManagementService.stopService(serviceName);
-        return Map.of("status", "Service " + serviceName + " stopped");
+    private Map<String, Object> executeServiceCommand(ServiceCommand command, String successMessage) {
+        try {
+            command.execute();
+            return Map.of("code", 0, "data", Map.of(), "message", successMessage);
+        } catch (IOException e) {
+            return Map.of("code", -1, "data", Map.of(), "message", e.getMessage());
+        }
     }
 
-    @PostMapping("/restart/{serviceName}")
-    public Map<String, String> restartService(@PathVariable String serviceName) throws IOException {
-        serviceManagementService.restartService(serviceName);
-        return Map.of("status", "Service " + serviceName + " restarted");
-    }
-
-    @PostMapping("/enable/{serviceName}")
-    public Map<String, String> enableService(@PathVariable String serviceName) throws IOException {
-        serviceManagementService.enableService(serviceName);
-        return Map.of("status", "Service " + serviceName + " enabled for auto-start");
-    }
-
-    @PostMapping("/disable/{serviceName}")
-    public Map<String, String> disableService(@PathVariable String serviceName) throws IOException {
-        serviceManagementService.disableService(serviceName);
-        return Map.of("status", "Service " + serviceName + " disabled for auto-start");
+    @FunctionalInterface
+    private interface ServiceCommand {
+        void execute() throws IOException;
     }
 }

@@ -1,6 +1,7 @@
 package com.pennet.defender.controller;
 
 import com.pennet.defender.config.SecurityMonitorConfig;
+import com.pennet.defender.model.ApiResponse;
 import com.pennet.defender.model.SecurityAlert;
 import com.pennet.defender.service.SecurityMonitorService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,33 +22,110 @@ public class SecurityMonitorController {
     @Autowired
     private SecurityMonitorConfig securityMonitorConfig;
 
-    @GetMapping("/alert")
-    public Map<String, Object> getSecurityAlerts(
-            @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "30") int size,
-            @RequestParam(required = false) Integer detectWay,
-            @RequestParam(required = false) String alertType) {
+//    @GetMapping("/alert")
+//    public Map<String, Object> getSecurityAlerts(
+//            @RequestParam(defaultValue = "1") int page,
+//            @RequestParam(defaultValue = "30") int size,
+//            @RequestParam(required = false) Integer detectWay,
+//            @RequestParam(required = false) String alertType) {
+//
+//        Page<SecurityAlert> alerts = securityMonitorService.getAlerts(page, size, detectWay, alertType);
+//
+//        Map<String, Object> response = new HashMap<>();
+//        response.put("totalPages", alerts.getTotalPages());
+//        response.put("totalElements", alerts.getTotalElements());
+//        response.put("content", alerts.getContent());
+//
+//        return response;
+//    }
+//
+//    @GetMapping("/status")
+//    public Map<String, Boolean> getMonitoringStatus() {
+//        Map<String, Boolean> status = new HashMap<>();
+//        status.put("sshMonitoring", securityMonitorService.isSshMonitoringRunning());
+//        status.put("httpMonitoring", securityMonitorService.isHttpMonitoringRunning());
+//        return status;
+//    }
+//
+//    @PostMapping("/ssh/enable")
+//    public ResponseEntity<Map<String, Object>> enableSshMonitoring() {
+//        securityMonitorService.startSshMonitoring();
+//        securityMonitorConfig.setSshMonitorEnabled(true);
+//
+//        Map<String, Object> response = new HashMap<>();
+//        response.put("success", true);
+//        response.put("message", "SSH监控已启用");
+//        response.put("status", securityMonitorService.isSshMonitoringRunning());
+//
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    @PostMapping("/ssh/disable")
+//    public ResponseEntity<Map<String, Object>> disableSshMonitoring() {
+//        securityMonitorService.stopSshMonitoring();
+//        securityMonitorConfig.setSshMonitorEnabled(false);
+//
+//        Map<String, Object> response = new HashMap<>();
+//        response.put("success", true);
+//        response.put("message", "SSH监控已禁用");
+//        response.put("status", securityMonitorService.isSshMonitoringRunning());
+//
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    @PostMapping("/http/enable")
+//    public ResponseEntity<Map<String, Object>> enableHttpMonitoring() {
+//        securityMonitorService.startHttpMonitoring();
+//        securityMonitorConfig.setHttpMonitorEnabled(true);
+//
+//        Map<String, Object> response = new HashMap<>();
+//        response.put("success", true);
+//        response.put("message", "HTTP监控已启用");
+//        response.put("status", securityMonitorService.isHttpMonitoringRunning());
+//
+//        return ResponseEntity.ok(response);
+//    }
+//
+//    @PostMapping("/http/disable")
+//    public ResponseEntity<Map<String, Object>> disableHttpMonitoring() {
+//        securityMonitorService.stopHttpMonitoring();
+//        securityMonitorConfig.setHttpMonitorEnabled(false);
+//
+//        Map<String, Object> response = new HashMap<>();
+//        response.put("success", true);
+//        response.put("message", "HTTP监控已禁用");
+//        response.put("status", securityMonitorService.isHttpMonitoringRunning());
+//
+//        return ResponseEntity.ok(response);
+//    }
+@GetMapping("/alert")
+public ApiResponse<Map<String, Object>> getSecurityAlerts(
+        @RequestParam(defaultValue = "1") int page,
+        @RequestParam(defaultValue = "30") int size,
+        @RequestParam(required = false) Integer detectWay,
+        @RequestParam(required = false) String alertType) {
 
-        Page<SecurityAlert> alerts = securityMonitorService.getAlerts(page, size, detectWay, alertType);
+    Page<SecurityAlert> alerts = securityMonitorService.getAlerts(page, size, detectWay, alertType);
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("totalPages", alerts.getTotalPages());
-        response.put("totalElements", alerts.getTotalElements());
-        response.put("content", alerts.getContent());
+    Map<String, Object> data = new HashMap<>();
+    data.put("totalPages", alerts.getTotalPages());
+    data.put("totalElements", alerts.getTotalElements());
+    data.put("content", alerts.getContent());
 
-        return response;
-    }
+    return new ApiResponse<>(0, data, "success");
+}
 
     @GetMapping("/status")
-    public Map<String, Boolean> getMonitoringStatus() {
+    public ApiResponse<Map<String, Boolean>> getMonitoringStatus() {
         Map<String, Boolean> status = new HashMap<>();
         status.put("sshMonitoring", securityMonitorService.isSshMonitoringRunning());
         status.put("httpMonitoring", securityMonitorService.isHttpMonitoringRunning());
-        return status;
+
+        return new ApiResponse<>(0, status, "success");
     }
 
     @PostMapping("/ssh/enable")
-    public ResponseEntity<Map<String, Object>> enableSshMonitoring() {
+    public ApiResponse<Map<String, Object>> enableSshMonitoring() {
         securityMonitorService.startSshMonitoring();
         securityMonitorConfig.setSshMonitorEnabled(true);
 
@@ -56,11 +134,11 @@ public class SecurityMonitorController {
         response.put("message", "SSH监控已启用");
         response.put("status", securityMonitorService.isSshMonitoringRunning());
 
-        return ResponseEntity.ok(response);
+        return new ApiResponse<>(0, response, "success");
     }
 
     @PostMapping("/ssh/disable")
-    public ResponseEntity<Map<String, Object>> disableSshMonitoring() {
+    public ApiResponse<Map<String, Object>> disableSshMonitoring() {
         securityMonitorService.stopSshMonitoring();
         securityMonitorConfig.setSshMonitorEnabled(false);
 
@@ -69,11 +147,11 @@ public class SecurityMonitorController {
         response.put("message", "SSH监控已禁用");
         response.put("status", securityMonitorService.isSshMonitoringRunning());
 
-        return ResponseEntity.ok(response);
+        return new ApiResponse<>(0, response, "success");
     }
 
     @PostMapping("/http/enable")
-    public ResponseEntity<Map<String, Object>> enableHttpMonitoring() {
+    public ApiResponse<Map<String, Object>> enableHttpMonitoring() {
         securityMonitorService.startHttpMonitoring();
         securityMonitorConfig.setHttpMonitorEnabled(true);
 
@@ -82,11 +160,11 @@ public class SecurityMonitorController {
         response.put("message", "HTTP监控已启用");
         response.put("status", securityMonitorService.isHttpMonitoringRunning());
 
-        return ResponseEntity.ok(response);
+        return new ApiResponse<>(0, response, "success");
     }
 
     @PostMapping("/http/disable")
-    public ResponseEntity<Map<String, Object>> disableHttpMonitoring() {
+    public ApiResponse<Map<String, Object>> disableHttpMonitoring() {
         securityMonitorService.stopHttpMonitoring();
         securityMonitorConfig.setHttpMonitorEnabled(false);
 
@@ -95,6 +173,6 @@ public class SecurityMonitorController {
         response.put("message", "HTTP监控已禁用");
         response.put("status", securityMonitorService.isHttpMonitoringRunning());
 
-        return ResponseEntity.ok(response);
+        return new ApiResponse<>(0, response, "success");
     }
 }

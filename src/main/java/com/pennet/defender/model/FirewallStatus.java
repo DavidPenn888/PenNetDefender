@@ -1,29 +1,49 @@
 package com.pennet.defender.model;
 
 public class FirewallStatus {
-    private boolean firewallActive;
-    private boolean iptablesActive;
+    private boolean enabled;
+    private int totalRules;
+    private int inputRules;
+    private int outputRules;
+    private int forwardRules;
 
-    public FirewallStatus() {}
-
-    public FirewallStatus(boolean firewallActive, boolean iptablesActive) {
-        this.firewallActive = firewallActive;
-        this.iptablesActive = iptablesActive;
+    public boolean isEnabled() {
+        return enabled;
     }
 
-    public boolean isFirewallActive() {
-        return firewallActive;
+    public void setEnabled(boolean enabled) {
+        this.enabled = enabled;
     }
 
-    public void setFirewallActive(boolean firewallActive) {
-        this.firewallActive = firewallActive;
+    public int getTotalRules() {
+        return totalRules;
     }
 
-    public boolean isIptablesActive() {
-        return iptablesActive;
+    public void setTotalRules(int totalRules) {
+        this.totalRules = totalRules;
     }
 
-    public void setIptablesActive(boolean iptablesActive) {
-        this.iptablesActive = iptablesActive;
+    public int getInputRules() {
+        return inputRules;
+    }
+
+    public void setInputRules(int inputRules) {
+        this.inputRules = inputRules;
+    }
+
+    public int getOutputRules() {
+        return outputRules;
+    }
+
+    public void setOutputRules(int outputRules) {
+        this.outputRules = outputRules;
+    }
+
+    public int getForwardRules() {
+        return forwardRules;
+    }
+
+    public void setForwardRules(int forwardRules) {
+        this.forwardRules = forwardRules;
     }
 }

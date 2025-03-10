@@ -1,6 +1,7 @@
 package com.pennet.defender.controller;
 
 import com.pennet.defender.config.WebHookConfig;
+import com.pennet.defender.model.ApiResponse;
 import com.pennet.defender.model.User;
 import com.pennet.defender.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -22,8 +23,34 @@ public class UserController {
         this.passwordEncoder = passwordEncoder;
     }
 
+//    @PostMapping("/changepsw")
+//    public ResponseEntity<String> changePassword(
+//            @RequestParam String username,
+//            @RequestParam String oldPassword,
+//            @RequestParam String newPassword) {
+//
+//        Optional<User> user = userRepository.findByUsername(username);
+//
+//        if (user.isPresent()) {
+//            User u = user.get();
+//
+//            // 校验原密码是否正确
+//            if (!passwordEncoder.matches(oldPassword, u.getPassword())) {
+//                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Original password is incorrect");
+//            }
+//
+//            // 更新新密码
+//            u.setPassword(passwordEncoder.encode(newPassword));
+//            userRepository.save(u);
+//
+//            return ResponseEntity.ok("Password changed successfully");
+//        } else {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+//        }
+//    }
+
     @PostMapping("/changepsw")
-    public ResponseEntity<String> changePassword(
+    public ApiResponse<String> changePassword(
             @RequestParam String username,
             @RequestParam String oldPassword,
             @RequestParam String newPassword) {
@@ -35,19 +62,17 @@ public class UserController {
 
             // 校验原密码是否正确
             if (!passwordEncoder.matches(oldPassword, u.getPassword())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Original password is incorrect");
+                return new ApiResponse<>(-1, null, "Original password is incorrect");
             }
 
             // 更新新密码
             u.setPassword(passwordEncoder.encode(newPassword));
             userRepository.save(u);
 
-            return ResponseEntity.ok("Password changed successfully");
+            return new ApiResponse<>(0, null, "Password changed successfully");
         } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found");
+            return new ApiResponse<>(-1, null, "User not found");
         }
     }
-
-
 
 }
