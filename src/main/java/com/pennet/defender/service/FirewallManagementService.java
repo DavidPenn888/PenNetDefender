@@ -3,6 +3,8 @@ package com.pennet.defender.service;
 import com.pennet.defender.model.FirewallRule;
 import com.pennet.defender.model.FirewallStatus;
 import com.pennet.defender.repository.FirewallRuleRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -17,6 +19,7 @@ import java.util.Optional;
 
 @Service
 public class FirewallManagementService {
+    private static final Logger logger = LoggerFactory.getLogger(FirewallManagementService.class);
 
     @Autowired
     private FirewallRuleRepository firewallRuleRepository;
@@ -24,44 +27,40 @@ public class FirewallManagementService {
     @Autowired
     private IptablesService iptablesService;
 
-    // 获取防火墙状态
+    /**
+     * 获取防火墙状态
+     */
     public FirewallStatus getFirewallStatus() throws IOException {
-        FirewallStatus status = new FirewallStatus();
-        status.setEnabled(iptablesService.isFirewallEnabled());
-
-        // 获取各链的规则数量
-        long totalRules = firewallRuleRepository.count();
-        long inputRules = firewallRuleRepository.countByChain("INPUT");
-        long outputRules = firewallRuleRepository.countByChain("OUTPUT");
-        long forwardRules = firewallRuleRepository.countByChain("FORWARD");
-
-        status.setTotalRules((int)totalRules);
-        status.setInputRules((int)inputRules);
-        status.setOutputRules((int)outputRules);
-        status.setForwardRules((int)forwardRules);
-
-        return status;
+        return iptablesService.getFirewallStatus();
     }
 
-    // 启用防火墙
+    /**
+     * 启用防火墙
+     */
     public void enableFirewall() throws IOException {
         iptablesService.enableFirewall();
-        refreshFirewallRules();
+        // 应用数据库中的规则
+        applyRulesFromDatabase();
     }
 
-    // 禁用防火墙
+    /**
+     * 禁用防火墙
+     */
     public void disableFirewall() throws IOException {
         iptablesService.disableFirewall();
-        refreshFirewallRules();
     }
 
-    // 获取防火墙规则（分页）
+    /**
+     * 获取防火墙规则（分页）
+     */
     public Page<FirewallRule> getFirewallRules(int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size);
         return firewallRuleRepository.findAllByOrderByPriorityAsc(pageable);
     }
 
-    // 添加防火墙规则
+    /**
+     * 添加防火墙规则
+     */
     @Transactional
     public FirewallRule addFirewallRule(FirewallRule rule) throws IOException {
         // 设置优先级
@@ -70,19 +69,20 @@ public class FirewallManagementService {
             rule.setPriority(maxPriority + 1);
         }
 
-        // 设置更新时间
         rule.setLastUpdated(LocalDateTime.now());
 
         // 保存到数据库
         FirewallRule savedRule = firewallRuleRepository.save(rule);
 
         // 应用到iptables
-        iptablesService.addRule(savedRule);
+        iptablesService.addRule(rule);
 
         return savedRule;
     }
 
-    // 更新防火墙规则
+    /**
+     * 更新防火墙规则
+     */
     @Transactional
     public void updateFirewallRule(FirewallRule rule) throws IOException {
         Optional<FirewallRule> existingRuleOpt = firewallRuleRepository.findById(rule.getId());
@@ -90,18 +90,31 @@ public class FirewallManagementService {
         if (existingRuleOpt.isPresent()) {
             FirewallRule existingRule = existingRuleOpt.get();
 
-            // 更新iptables规则
-            iptablesService.updateRule(existingRule, rule);
+            // 删除旧规则
+            iptablesService.deleteRule(existingRule);
 
-            // 更新数据库中的规则
-            rule.setLastUpdated(LocalDateTime.now());
-            firewallRuleRepository.save(rule);
+            // 更新规则属性
+            existingRule.setChain(rule.getChain());
+            existingRule.setAction(rule.getAction());
+            existingRule.setProtocol(rule.getProtocol());
+            existingRule.setSource(rule.getSource());
+            existingRule.setDestination(rule.getDestination());
+            existingRule.setPort(rule.getPort());
+            existingRule.setLastUpdated(LocalDateTime.now());
+
+            // 保存到数据库
+            firewallRuleRepository.save(existingRule);
+
+            // 添加新规则
+            iptablesService.addRule(existingRule);
         } else {
             throw new IOException("Rule not found with ID: " + rule.getId());
         }
     }
 
-    // 删除防火墙规则
+    /**
+     * 删除防火墙规则
+     */
     @Transactional
     public void deleteFirewallRule(Integer id) throws IOException {
         Optional<FirewallRule> ruleOpt = firewallRuleRepository.findById(id);
@@ -109,17 +122,19 @@ public class FirewallManagementService {
         if (ruleOpt.isPresent()) {
             FirewallRule rule = ruleOpt.get();
 
-            // 从iptables中删除规则
+            // 从iptables删除
             iptablesService.deleteRule(rule);
 
-            // 从数据库中删除规则
+            // 从数据库删除
             firewallRuleRepository.deleteById(id);
         } else {
             throw new IOException("Rule not found with ID: " + id);
         }
     }
 
-    // 刷新防火墙规则（从iptables同步到数据库）
+    /**
+     * 刷新防火墙规则（从iptables同步到数据库）
+     */
     @Transactional
     public void refreshFirewallRules() throws IOException {
         // 获取iptables中的规则
@@ -128,10 +143,32 @@ public class FirewallManagementService {
         // 清空数据库中的规则
         firewallRuleRepository.deleteAll();
 
-        // 将iptables规则保存到数据库
+        // 保存新规则到数据库
         for (FirewallRule rule : iptablesRules) {
             rule.setLastUpdated(LocalDateTime.now());
             firewallRuleRepository.save(rule);
         }
+    }
+
+    /**
+     * 应用数据库中的规则到iptables
+     */
+    private void applyRulesFromDatabase() throws IOException {
+        // 清除现有规则
+        iptablesService.disableFirewall();
+
+        // 获取数据库中的所有规则
+        List<FirewallRule> rules = firewallRuleRepository.findAll();
+
+        // 按优先级排序并应用
+        rules.stream()
+                .sorted((r1, r2) -> r1.getPriority().compareTo(r2.getPriority()))
+                .forEach(rule -> {
+                    try {
+                        iptablesService.addRule(rule);
+                    } catch (IOException e) {
+                        logger.error("Failed to apply rule: {}", rule.getId(), e);
+                    }
+                });
     }
 }

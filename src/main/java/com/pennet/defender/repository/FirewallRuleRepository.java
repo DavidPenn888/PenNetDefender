@@ -19,6 +19,4 @@ public interface FirewallRuleRepository extends JpaRepository<FirewallRule, Inte
 
     @Query("SELECT COALESCE(MAX(r.priority), 0) FROM FirewallRule r WHERE r.chain = :chain")
     int findMaxPriorityByChain(@Param("chain") String chain);
-
-    long countByChain(String chain);
 }

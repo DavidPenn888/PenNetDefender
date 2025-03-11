@@ -87,7 +87,7 @@ public class FirewallManagementController {
         try {
             rule.setId(id);
             firewallManagementService.updateFirewallRule(rule);
-            return ResponseEntity.ok(Map.of("code", 0, "data", rule, "message", "Firewall rule updated successfully"));
+            return ResponseEntity.ok(Map.of("code", 0, "data", new HashMap<>(), "message", "Firewall rule updated successfully"));
         } catch (IOException e) {
             return ResponseEntity.ok(Map.of("code", -1, "data", new HashMap<>(), "message", e.getMessage()));
         }
