@@ -51,18 +51,18 @@ public class AppServiceManagementController {
 //    }
 
     @PostMapping("/action")
-    public Map<String, Object> manageService(@RequestParam String serviceName, @RequestParam String action) {
+    public Map<String, Object> manageService(@RequestParam String action, @RequestParam String servicename) {
         switch (action.toLowerCase()) {
             case "start":
-                return executeServiceCommand(() -> serviceManagementService.startService(serviceName), "Service " + serviceName + " started");
+                return executeServiceCommand(() -> serviceManagementService.startService(servicename), "Service " + servicename + " started");
             case "stop":
-                return executeServiceCommand(() -> serviceManagementService.stopService(serviceName), "Service " + serviceName + " stopped");
+                return executeServiceCommand(() -> serviceManagementService.stopService(servicename), "Service " + servicename + " stopped");
             case "restart":
-                return executeServiceCommand(() -> serviceManagementService.restartService(serviceName), "Service " + serviceName + " restarted");
+                return executeServiceCommand(() -> serviceManagementService.restartService(servicename), "Service " + servicename + " restarted");
             case "enable":
-                return executeServiceCommand(() -> serviceManagementService.enableService(serviceName), "Service " + serviceName + " enabled for auto-start");
+                return executeServiceCommand(() -> serviceManagementService.enableService(servicename), "Service " + servicename + " enabled for auto-start");
             case "disable":
-                return executeServiceCommand(() -> serviceManagementService.disableService(serviceName), "Service " + serviceName + " disabled for auto-start");
+                return executeServiceCommand(() -> serviceManagementService.disableService(servicename), "Service " + servicename + " disabled for auto-start");
             default:
                 return Map.of("code", -1, "data", Map.of(), "message", "Invalid action: " + action);
         }

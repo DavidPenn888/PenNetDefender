@@ -1,14 +1,80 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Login</title>
+    <title>网络安全管理系统 - 登录</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入Element UI -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #e6f7ff; /* 淡天蓝色背景 */
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-container {
+            width: 400px;
+            padding: 30px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .system-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        .login-form {
+            margin-top: 20px;
+        }
+        .login-button {
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
 </head>
 <body>
-<h2>Login</h2>
-<form method="post" action="/login">
-    <input type="text" name="username" placeholder="Username" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <button type="submit">Login</button>
-</form>
+    <div class="login-container">
+        <h1 class="system-title">网络安全管理系统</h1>
+        <div class="login-form">
+            <form method="post" action="/login" id="loginForm">
+                <el-input placeholder="用户名" name="username" v-model="username" prefix-icon="el-icon-user" required></el-input>
+                <div style="height: 20px;"></div>
+                <el-input placeholder="密码" name="password" v-model="password" prefix-icon="el-icon-lock" show-password required></el-input>
+                <el-button type="primary" class="login-button" @click="submitForm">登录</el-button>
+            </form>
+        </div>
+    </div>
+
+    <!-- 引入Vue和Element UI的JS -->
+    <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script>
+        new Vue({
+            el: '.login-container',
+            data() {
+                return {
+                    username: '',
+                    password: ''
+                }
+            },
+            methods: {
+                submitForm() {
+                    if (!this.username || !this.password) {
+                        this.$message.error('请输入用户名和密码');
+                        return;
+                    }
+                    document.getElementById('loginForm').submit();
+                }
+            }
+        });
+    </script>
 </body>
 </html>

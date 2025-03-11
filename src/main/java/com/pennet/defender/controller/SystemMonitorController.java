@@ -22,37 +22,6 @@ public class SystemMonitorController {
     @Autowired
     private ThresholdConfig thresholdConfig;
 
-//    @GetMapping("/status")
-//    public List<SystemStatus> getStatus(@RequestParam String timeline) {
-//        if ("recent".equalsIgnoreCase(timeline)) {
-//            return systemMonitorService.getRecentStatus();
-//        }
-//        return null; // Other time ranges can be added
-//    }
-//
-//    @GetMapping("/get_threshold")
-//    public ThresholdConfig getThreshold() {
-//        return thresholdConfig;
-//    }
-//
-//    @PostMapping("/change_threshold")
-//    public void changeThreshold(@RequestBody ThresholdConfig newThresholdConfig) {
-//        thresholdConfig.setCpuThreshold(newThresholdConfig.getCpuThreshold());
-//        thresholdConfig.setMemoryThreshold(newThresholdConfig.getMemoryThreshold());
-//        thresholdConfig.setStorageThreshold(newThresholdConfig.getStorageThreshold());
-//    }
-//
-//    @GetMapping("/threshold_alert")
-//    public Map<String, Object> getThresholdAlerts(@RequestParam(defaultValue = "1") int page,
-//                                                  @RequestParam(defaultValue = "30") int size,
-//                                                  @RequestParam(required = false) String alertType) {
-//        Page<ThresholdAlert> thresholdAlerts = systemMonitorService.getThresholdAlerts(alertType, page, size);
-//        return Map.of(
-//                "totalPages", thresholdAlerts.getTotalPages(),
-//                "totalElements", thresholdAlerts.getTotalElements(),
-//                "content", thresholdAlerts.getContent()
-//        );
-//    }
 @GetMapping("/status")
 public ApiResponse<List<SystemStatus>> getStatus(@RequestParam String timeline) {
     if ("recent".equalsIgnoreCase(timeline)) {

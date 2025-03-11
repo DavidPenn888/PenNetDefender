@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>网络安全管理系统</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 引入Element UI -->
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <!-- 引入Echarts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.0/dist/echarts.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #e6f7ff; /* 淡天蓝色背景 */
+            font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', Arial, sans-serif;
+        }
+        .app-container {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 220px;
+            background-color: #545c64; /* 深灰色背景 */
+            color: white;
+        }
+        .main-content {
+            flex: 1;
+            padding: 20px;
+            background-color: #f0f9ff;
+        }
+        .el-menu {
+            border-right: none;
+        }
+        .chart-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .chart-box {
+            width: 32%;
+            height: 300px;
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+            padding: 10px;
+        }
+        .chart {
+            width: 100%;
+            height: 250px;
+        }
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 20px 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #dcdfe6;
+        }
+        .alert-table {
+            background-color: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+            padding: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <!-- 左侧导航栏 -->
+        <div class="sidebar">
+            <el-menu
+                default-active="1-1"
+                class="el-menu-vertical-demo"
+                background-color="#545c64"
+                text-color="#fff"
+                active-text-color="#ffd04b"
+                :unique-opened="true"
+                @select="handleSelect">
+                <el-submenu index="1">
+                    <template slot="title">
+                        <i class="el-icon-monitor"></i>
+                        <span>服务监控</span>
+                    </template>
+                    <el-menu-item index="1-1">监控主页</el-menu-item>
+                    <el-menu-item index="1-2">阈值告警查询</el-menu-item>
+                </el-submenu>
+                <el-submenu index="2">
+                    <template slot="title">
+                        <i class="el-icon-warning"></i>
+                        <span>异常检测</span>
+                    </template>
+                    <el-menu-item index="2-1">异常检测状态</el-menu-item>
+                    <el-menu-item index="2-2">异常检测告警</el-menu-item>
+                </el-submenu>
+                <el-submenu index="3">
+                    <template slot="title">
+                        <i class="el-icon-setting"></i>
+                        <span>系统管理</span>
+                    </template>
+                    <el-menu-item index="3-1">服务管理</el-menu-item>
+                    <el-menu-item index="3-2">端口管理</el-menu-item>
+                    <el-menu-item index="3-3">防火墙管理</el-menu-item>
+                </el-submenu>
+                <el-submenu index="4">
+                    <template slot="title">
+                        <i class="el-icon-s-tools"></i>
+                        <span>配置管理</span>
+                    </template>
+                    <el-menu-item index="4-1">阈值管理</el-menu-item>
+                    <el-menu-item index="4-2">WebHook配置</el-menu-item>
+                    <el-menu-item index="4-3">管理员密码修改</el-menu-item>
+                </el-submenu>
+            </el-menu>
+        </div>
+        
+        <!-- 主内容区域 -->
+        <div class="main-content">
+            <!-- 服务监控主页 -->
+            <div v-if="currentPage === '1-1'">
+                <h2>服务监控主页</h2>
+                
+                <!-- 系统运行状态图表 -->
+                <div class="section-title">最近系统运行状态</div>
+                <div class="chart-container">
+                    <div class="chart-box">
+                        <h3>CPU使用率</h3>
+                        <div id="cpuChart" class="chart"></div>
+                    </div>
+                    <div class="chart-box">
+                        <h3>内存使用率</h3>
+                        <div id="memoryChart" class="chart"></div>
+                    </div>
+                    <div class="chart-box">
+                        <h3>存储使用率</h3>
+                        <div id="storageChart" class="chart"></div>
+                    </div>
+                </div>
+                
+                <!-- 阈值预警表格 -->
+                <div class="section-title">近期阈值预警</div>
+                <div class="alert-table">
+                    <el-table
+                        :data="thresholdAlerts"
+                        style="width: 100%"
+                        border>
+                        <el-table-column
+                            prop="tnumber"
+                            label="序号"
+                            width="80">
+                        </el-table-column>
+                        <el-table-column
+                            prop="timestamp"
+                            label="时间"
+                            width="180">
+                            <template slot-scope="scope">
+                                {{ formatDate(scope.row.timestamp) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            prop="alertType"
+                            label="告警类型"
+                            width="120">
+                        </el-table-column>
+                        <el-table-column
+                            prop="detailInfo"
+                            label="详细信息">
+                        </el-table-column>
+                    </el-table>
+                    
+                    <div style="margin-top: 20px; text-align: center;">
+                        <el-button type="primary" @click="goToAlertQuery">查询更多告警</el-button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 阈值告警查询页面 -->
+            <div v-if="currentPage === '1-2'">
+                <h2>阈值告警查询</h2>
+                
+                <div class="alert-table">
+                    <!-- 筛选条件 -->
+                    <div style="margin-bottom: 20px;">
+                        <el-form :inline="true" :model="thresholdQueryForm" class="demo-form-inline">
+                            <el-form-item label="告警类型">
+                                <el-select v-model="thresholdQueryForm.alertType" placeholder="选择告警类型" clearable>
+                                    <el-option label="CPU" value="CPU"></el-option>
+                                    <el-option label="Memory" value="Memory"></el-option>
+                                    <el-option label="Storage" value="Storage"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="searchThresholdAlerts">查询</el-button>
+                                <el-button type="success" @click="goToThresholdManage">修改告警阈值</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    
+                    <!-- 告警表格 -->
+                    <el-table
+                        :data="thresholdAlertsPage.content"
+                        style="width: 100%"
+                        border
+                        v-loading="loading">
+                        <el-table-column
+                            prop="tnumber"
+                            label="序号"
+                            width="80">
+                        </el-table-column>
+                        <el-table-column
+                            prop="timestamp"
+                            label="时间"
+                            width="180">
+                            <template slot-scope="scope">
+                                {{ formatDate(scope.row.timestamp) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            prop="alertType"
+                            label="告警类型"
+                            width="120">
+                        </el-table-column>
+                        <el-table-column
+                            prop="detailInfo"
+                            label="详细信息">
+                        </el-table-column>
+                    </el-table>
+                    
+                    <!-- 分页 -->
+                    <div style="margin-top: 20px; text-align: right;">
+                        <el-pagination
+                            @current-change="handleThresholdPageChange"
+                            :current-page="thresholdQueryForm.page"
+                            :page-size="thresholdQueryForm.size"
+                            layout="total, prev, pager, next"
+                            :total="thresholdAlertsPage.totalElements">
+                        </el-pagination>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 异常检测状态页面 -->
+            <div v-if="currentPage === '2-1'">
+                <h2>异常检测状态</h2>
+                
+                <div class="monitor-status-container" style="display: flex; justify-content: space-around; margin-top: 30px;">
+                    <!-- SSH监控状态 -->
+                    <div class="status-card" style="width: 45%; background-color: white; border-radius: 4px; box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); padding: 20px;">
+                        <h3 style="margin-top: 0;">SSH监控</h3>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin: 20px 0;">
+                            <div>
+                                <el-tag :type="monitorStatus.sshMonitoring ? 'success' : 'info'">
+                                    {{ monitorStatus.sshMonitoring ? '运行中' : '已停止' }}
+                                </el-tag>
+                            </div>
+                            <div>
+                                <el-switch
+                                    v-model="monitorStatus.sshMonitoring"
+                                    active-color="#13ce66"
+                                    inactive-color="#ff4949"
+                                    @change="toggleSshMonitoring">
+                                </el-switch>
+                            </div>
+                        </div>
+                        <div style="font-size: 14px; color: #606266;">
+                            <p>SSH监控可以检测系统中的SSH登录尝试，识别可能的暴力破解攻击和未授权访问。</p>
+                        </div>
+                    </div>
+                    
+                    <!-- HTTP监控状态 -->
+                    <div class="status-card" style="width: 45%; background-color: white; border-radius: 4px; box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1); padding: 20px;">
+                        <h3 style="margin-top: 0;">HTTP监控</h3>
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin: 20px 0;">
+                            <div>
+                                <el-tag :type="monitorStatus.httpMonitoring ? 'success' : 'info'">
+                                    {{ monitorStatus.httpMonitoring ? '运行中' : '已停止' }}
+                                </el-tag>
+                            </div>
+                            <div>
+                                <el-switch
+                                    v-model="monitorStatus.httpMonitoring"
+                                    active-color="#13ce66"
+                                    inactive-color="#ff4949"
+                                    @change="toggleHttpMonitoring">
+                                </el-switch>
+                            </div>
+                        </div>
+                        <div style="font-size: 14px; color: #606266;">
+                            <p>HTTP监控可以检测Web服务器的异常访问请求，识别可能的SQL注入、XSS攻击和其他Web安全威胁。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 异常检测告警页面 -->
+            <div v-if="currentPage === '2-2'">
+                <h2>异常检测告警</h2>
+                
+                <div class="alert-table">
+                    <!-- 筛选条件 -->
+                    <div style="margin-bottom: 20px;">
+                        <el-form :inline="true" :model="securityQueryForm" class="demo-form-inline">
+                            <el-form-item label="检测方式">
+                                <el-select v-model="securityQueryForm.detectWay" placeholder="选择检测方式" clearable>
+                                    <el-option label="SSH监控" :value="1"></el-option>
+                                    <el-option label="HTTP监控" :value="2"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="告警类型">
+                                <el-input v-model="securityQueryForm.alertType" placeholder="告警类型"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="searchSecurityAlerts">查询</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                    
+                    <!-- 告警表格 -->
+                    <el-table
+                        :data="securityAlertsPage.content"
+                        style="width: 100%"
+                        border
+                        v-loading="loading">
+                        <el-table-column
+                            prop="id"
+                            label="ID"
+                            width="80">
+                        </el-table-column>
+                        <el-table-column
+                            prop="timestamp"
+                            label="时间"
+                            width="180">
+                            <template slot-scope="scope">
+                                {{ formatDate(scope.row.timestamp) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            prop="detectWay"
+                            label="检测方式"
+                            width="100">
+                            <template slot-scope="scope">
+                                {{ scope.row.detectWay === 1 ? 'SSH监控' : 'HTTP监控' }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            prop="alertType"
+                            label="告警类型"
+                            width="120">
+                        </el-table-column>
+                        <el-table-column
+                            prop="detailInfo"
+                            label="详细信息">
+                        </el-table-column>
+                    </el-table>
+                    
+                    <!-- 分页 -->
+                    <div style="margin-top: 20px; text-align: right;">
+                        <el-pagination
+                            @current-change="handleSecurityPageChange"
+                            :current-page="securityQueryForm.page"
+                            :page-size="securityQueryForm.size"
+                            layout="total, prev, pager, next"
+                            :total="securityAlertsPage.totalElements">
+                        </el-pagination>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 服务管理页面 -->
+            <div v-if="currentPage === '3-1'">
+                <h2>服务管理</h2>
+                
+                <div class="alert-table">
+                    <!-- 服务列表表格 -->
+                    <el-table
+                        :data="appServices.content"
+                        style="width: 100%"
+                        border
+                        v-loading="loading">
+                        <el-table-column
+                            prop="id"
+                            label="ID"
+                            width="80">
+                        </el-table-column>
+                        <el-table-column
+                            prop="name"
+                            label="服务名称"
+                            width="180">
+                        </el-table-column>
+                        <el-table-column
+                            prop="status"
+                            label="状态"
+                            width="100">
+                            <template slot-scope="scope">
+                                <el-tag :type="scope.row.status === 'active' ? 'success' : 'info'">
+                                    {{ scope.row.status }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            prop="enabled"
+                            label="自启动"
+                            width="100">
+                            <template slot-scope="scope">
+                                <el-tag :type="scope.row.enabled ? 'success' : 'info'">
+                                    {{ scope.row.enabled ? '已启用' : '已禁用' }}
+                                </el-tag>
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            prop="lastUpdated"
+                            label="最后更新时间"
+                            width="180">
+                            <template slot-scope="scope">
+                                {{ formatDate(scope.row.lastUpdated) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            label="操作"
+                            width="350">
+                            <template slot-scope="scope">
+                                <el-button size="mini" type="primary" @click="manageService(scope.row.name, 'start')">开启</el-button>
+                                <el-button size="mini" type="danger" @click="manageService(scope.row.name, 'stop')">关闭</el-button>
+                                <el-button size="mini" type="warning" @click="manageService(scope.row.name, 'restart')">重启</el-button>
+                                <el-button size="mini" type="success" @click="manageService(scope.row.name, 'enable')">自启</el-button>
+                                <el-button size="mini" type="info" @click="manageService(scope.row.name, 'disable')">关闭自启</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    
+                    <!-- 分页 -->
+                    <div style="margin-top: 20px; text-align: right;">
+                        <el-pagination
+                            @current-change="handleAppServicePageChange"
+                            :current-page="appServiceQueryForm.page"
+                            :page-size="appServiceQueryForm.size"
+                            layout="total, prev, pager, next"
+                            :total="appServices.totalElements">
+                        </el-pagination>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 端口管理页面 -->
+            <div v-if="currentPage === '3-2'">
+                <h2>端口管理</h2>
+                
+                <div class="alert-table">
+                    <!-- 端口列表表格 -->
+                    <el-table
+                        :data="portList.content"
+                        style="width: 100%"
+                        border
+                        v-loading="loading">
+                        <el-table-column
+                            prop="id"
+                            label="ID"
+                            width="80">
+                        </el-table-column>
+                        <el-table-column
+                            prop="portNumber"
+                            label="端口号"
+                            width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="protocol"
+                            label="协议"
+                            width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="processName"
+                            label="进程名称"
+                            width="180">
+                        </el-table-column>
+                        <el-table-column
+                            prop="processId"
+                            label="进程ID"
+                            width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="state"
+                            label="状态"
+                            width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="lastUpdated"
+                            label="最后更新时间"
+                            width="180">
+                            <template slot-scope="scope">
+                                {{ formatDate(scope.row.lastUpdated) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            label="操作"
+                            width="200">
+                            <template slot-scope="scope">
+                                <el-button size="mini" type="danger" @click="killPort(scope.row.processId, false)">关闭</el-button>
+                                <el-button size="mini" type="danger" @click="killPort(scope.row.processId, true)">强制关闭</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    
+                    <!-- 分页 -->
+                    <div style="margin-top: 20px; text-align: right;">
+                        <el-pagination
+                            @current-change="handlePortPageChange"
+                            :current-page="portQueryForm.page"
+                            :page-size="portQueryForm.size"
+                            layout="total, prev, pager, next"
+                            :total="portList.totalElements">
+                        </el-pagination>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 防火墙管理页面 -->
+            <div v-if="currentPage === '3-3'">
+                <h2>防火墙管理</h2>
+                
+                <!-- 防火墙状态和控制 -->
+                <div class="alert-table" style="margin-bottom: 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+                        <div>
+                            <h3 style="margin: 0;">防火墙状态</h3>
+                            <div style="margin-top: 10px;">
+                                <el-tag :type="firewallStatus.enabled ? 'success' : 'info'" size="medium">
+                                    {{ firewallStatus.enabled ? '已启用' : '已禁用' }}
+                                </el-tag>
+                                <span style="margin-left: 15px;">总规则数: {{ firewallStatus.totalRules || 0 }}</span>
+                                <span style="margin-left: 15px;">输入规则: {{ firewallStatus.inputRules || 0 }}</span>
+                                <span style="margin-left: 15px;">输出规则: {{ firewallStatus.outputRules || 0 }}</span>
+                                <span style="margin-left: 15px;">转发规则: {{ firewallStatus.forwardRules || 0 }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <el-button type="success" :disabled="firewallStatus.enabled" @click="toggleFirewall(true)">启用防火墙</el-button>
+                            <el-button type="danger" :disabled="!firewallStatus.enabled" @click="toggleFirewall(false)">禁用防火墙</el-button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 防火墙规则列表 -->
+                <div class="section-title">防火墙规则</div>
+                <div class="alert-table">
+                    <div style="margin-bottom: 20px; text-align: right;">
+                        <el-button type="primary" @click="openFirewallRuleDialog('add')">添加规则</el-button>
+                    </div>
+                    
+                    <el-table
+                        :data="firewallRules.content"
+                        style="width: 100%"
+                        border
+                        v-loading="loading">
+                        <el-table-column
+                            prop="id"
+                            label="ID"
+                            width="80">
+                        </el-table-column>
+                        <el-table-column
+                            prop="chain"
+                            label="链"
+                            width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="action"
+                            label="动作"
+                            width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="protocol"
+                            label="协议"
+                            width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="source"
+                            label="源地址"
+                            width="140">
+                        </el-table-column>
+                        <el-table-column
+                            prop="destination"
+                            label="目标地址"
+                            width="140">
+                        </el-table-column>
+                        <el-table-column
+                            prop="port"
+                            label="端口"
+                            width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="priority"
+                            label="优先级"
+                            width="80">
+                        </el-table-column>
+                        <el-table-column
+                            prop="lastUpdated"
+                            label="最后更新时间"
+                            width="180">
+                            <template slot-scope="scope">
+                                {{ formatDate(scope.row.lastUpdated) }}
+                            </template>
+                        </el-table-column>
+                        <el-table-column
+                            label="操作"
+                            width="150">
+                            <template slot-scope="scope">
+                                <el-button size="mini" type="primary" @click="openFirewallRuleDialog('edit', scope.row)">编辑</el-button>
+                                <el-button size="mini" type="danger" @click="openFirewallRuleDialog('delete', scope.row)">删除</el-button>
+                            </template>
+                        </el-table-column>
+                    </el-table>
+                    
+                    <!-- 分页 -->
+                    <div style="margin-top: 20px; text-align: right;">
+                        <el-pagination
+                            @current-change="handleFirewallRulePageChange"
+                            :current-page="firewallRuleQueryForm.page"
+                            :page-size="firewallRuleQueryForm.size"
+                            layout="total, prev, pager, next"
+                            :total="firewallRules.totalElements">
+                        </el-pagination>
+                    </div>
+                </div>
+                
+                <!-- 防火墙规则对话框 -->
+                <el-dialog :title="dialogTitle" :visible.sync="firewallRuleDialogVisible" width="500px">
+                    <el-form :model="firewallRuleForm" label-width="100px" v-if="dialogType !== 'delete'">
+                        <el-form-item label="链">
+                            <el-select v-model="firewallRuleForm.chain" placeholder="请选择链">
+                                <el-option label="INPUT" value="INPUT"></el-option>
+                                <el-option label="OUTPUT" value="OUTPUT"></el-option>
+                                <el-option label="FORWARD" value="FORWARD"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="动作">
+                            <el-select v-model="firewallRuleForm.action" placeholder="请选择动作">
+                                <el-option label="ACCEPT" value="ACCEPT"></el-option>
+                                <el-option label="DROP" value="DROP"></el-option>
+                                <el-option label="REJECT" value="REJECT"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="协议">
+                            <el-select v-model="firewallRuleForm.protocol" placeholder="请选择协议">
+                                <el-option label="all" value="all"></el-option>
+                                <el-option label="tcp" value="tcp"></el-option>
+                                <el-option label="udp" value="udp"></el-option>
+                                <el-option label="icmp" value="icmp"></el-option>
+                            </el-select>
+                        </el-form-item>
+                        <el-form-item label="源地址">
+                            <el-input v-model="firewallRuleForm.source" placeholder="例如: 192.168.1.100 或 0.0.0.0/0"></el-input>
+                        </el-form-item>
+                        <el-form-item label="目标地址">
+                            <el-input v-model="firewallRuleForm.destination" placeholder="例如: 192.168.1.200 或 0.0.0.0/0"></el-input>
+                        </el-form-item>
+                        <el-form-item label="端口">
+                            <el-input v-model="firewallRuleForm.port" placeholder="例如: 80 或 22"></el-input>
+                        </el-form-item>
+                    </el-form>
+                    <div v-if="dialogType === 'delete'" style="text-align: center;">
+                        <p>确定要删除ID为 {{ firewallRuleForm.id }} 的防火墙规则吗？</p>
+                    </div>
+                    <div slot="footer" class="dialog-footer">
+                        <el-button @click="firewallRuleDialogVisible = false">取消</el-button>
+                        <el-button type="primary" @click="submitFirewallRule">确定</el-button>
+                    </div>
+                </el-dialog>
+            </div>
+            
+            <!-- 阈值管理页面 -->
+            <div v-if="currentPage === '4-1'">
+                <h2>阈值管理</h2>
+                
+                <div class="alert-table">
+                    <div style="margin-bottom: 20px;">
+                        <p>当前系统资源使用率阈值设置，超过阈值将触发告警。</p>
+                    </div>
+                    
+                    <el-form :model="thresholdForm" label-width="120px" style="max-width: 600px;">
+                        <el-form-item label="CPU阈值 (%)">
+                            <el-slider v-model="thresholdForm.cpuThreshold" :min="0" :max="100" :step="1" show-input></el-slider>
+                        </el-form-item>
+                        <el-form-item label="内存阈值 (%)">
+                            <el-slider v-model="thresholdForm.memoryThreshold" :min="0" :max="100" :step="1" show-input></el-slider>
+                        </el-form-item>
+                        <el-form-item label="存储阈值 (%)">
+                            <el-slider v-model="thresholdForm.storageThreshold" :min="0" :max="100" :step="1" show-input></el-slider>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="updateThreshold">保存设置</el-button>
+                            <el-button @click="fetchThresholdSettings">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+            </div>
+            
+            <!-- WebHook配置页面 -->
+            <div v-if="currentPage === '4-2'">
+                <h2>WebHook配置</h2>
+                
+                <div class="alert-table">
+                    <div style="margin-bottom: 20px;">
+                        <p>配置告警通知的WebHook，支持微信和钉钉。</p>
+                    </div>
+                    
+                    <el-form :model="webhookForm" label-width="120px" style="max-width: 600px;">
+                        <el-form-item label="微信通知">
+                            <el-switch v-model="webhookForm.wechatEnable"></el-switch>
+                        </el-form-item>
+                        <el-form-item label="微信WebHook">
+                            <el-input v-model="webhookForm.wechatWebHook" placeholder="请输入微信WebHook地址"></el-input>
+                        </el-form-item>
+                        <el-form-item label="钉钉通知">
+                            <el-switch v-model="webhookForm.dingdingEnable"></el-switch>
+                        </el-form-item>
+                        <el-form-item label="钉钉WebHook">
+                            <el-input v-model="webhookForm.dingdingWebhook" placeholder="请输入钉钉WebHook地址"></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="updateWebhook">保存设置</el-button>
+                            <el-button @click="fetchWebhookSettings">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+            </div>
+            
+            <!-- 管理员密码修改页面 -->
+            <div v-if="currentPage === '4-3'">
+                <h2>管理员密码修改</h2>
+                
+                <div class="alert-table">
+                    <div style="margin-bottom: 20px;">
+                        <p>修改管理员账户密码。</p>
+                    </div>
+                    
+                    <el-form :model="passwordForm" label-width="120px" style="max-width: 600px;" :rules="passwordRules" ref="passwordForm">
+                        <el-form-item label="用户名" prop="username">
+                            <el-input v-model="passwordForm.username" placeholder="请输入用户名"></el-input>
+                        </el-form-item>
+                        <el-form-item label="原密码" prop="oldPassword">
+                            <el-input v-model="passwordForm.oldPassword" type="password" placeholder="请输入原密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="新密码" prop="newPassword">
+                            <el-input v-model="passwordForm.newPassword" type="password" placeholder="请输入新密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item label="确认新密码" prop="confirmPassword">
+                            <el-input v-model="passwordForm.confirmPassword" type="password" placeholder="请再次输入新密码" show-password></el-input>
+                        </el-form-item>
+                        <el-form-item>
+                            <el-button type="primary" @click="changePassword">修改密码</el-button>
+                            <el-button @click="resetPasswordForm">重置</el-button>
+                        </el-form-item>
+                    </el-form>
+                </div>
+            </div>
+            
+            <!-- 其他页面的内容 -->
+            <div v-if="['1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'].indexOf(currentPage) === -1">
+                <h2>{{ getPageTitle() }}</h2>
+                <el-alert
+                    title="该页面正在开发中"
+                    type="info"
+                    :closable="false">
+                </el-alert>
+            </div>
+        </div>
+    </div>
+
+    <!-- 引入Vue和Element UI的JS -->
+    <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    currentPage: '1-1',
+                    systemStatus: [],
+                    thresholdAlerts: [],
+                    loading: false,
+                    // 阈值告警查询页面数据
+                    thresholdQueryForm: {
+                        page: 1,
+                        size: 30,
+                        alertType: ''
+                    },
+                    thresholdAlertsPage: {
+                        content: [],
+                        totalElements: 0,
+                        totalPages: 0
+                    },
+                    // 阈值管理页面数据
+                    thresholdForm: {
+                        cpuThreshold: 80,
+                        memoryThreshold: 90,
+                        storageThreshold: 90
+                    },
+                    // WebHook配置页面数据
+                    webhookForm: {
+                        wechatEnable: false,
+                        wechatWebHook: '',
+                        dingdingEnable: false,
+                        dingdingWebhook: ''
+                    },
+                    // 管理员密码修改页面数据
+                    passwordForm: {
+                        username: '',
+                        oldPassword: '',
+                        newPassword: '',
+                        confirmPassword: ''
+                    },
+                    passwordRules: {
+                        username: [
+                            { required: true, message: '请输入用户名', trigger: 'blur' }
+                        ],
+                        oldPassword: [
+                            { required: true, message: '请输入原密码', trigger: 'blur' }
+                        ],
+                        newPassword: [
+                            { required: true, message: '请输入新密码', trigger: 'blur' },
+                            { min: 6, message: '密码长度不能小于6个字符', trigger: 'blur' }
+                        ],
+                        confirmPassword: [
+                            { required: true, message: '请再次输入新密码', trigger: 'blur' },
+                            { 
+                                validator: (rule, value, callback) => {
+                                    if (value !== this.passwordForm.newPassword) {
+                                        callback(new Error('两次输入的密码不一致'));
+                                    } else {
+                                        callback();
+                                    }
+                                }, 
+                                trigger: 'blur' 
+                            }
+                        ]
+                    },
+                    // 异常检测状态页面数据
+                    monitorStatus: {
+                        sshMonitoring: false,
+                        httpMonitoring: false
+                    },
+                    // 异常检测告警页面数据
+                    securityQueryForm: {
+                        page: 1,
+                        size: 30,
+                        detectWay: null,
+                        alertType: ''
+                    },
+                    securityAlertsPage: {
+                        content: [],
+                        totalElements: 0,
+                        totalPages: 0
+                    },
+                    // 服务管理页面数据
+                    appServiceQueryForm: {
+                        page: 1,
+                        size: 30
+                    },
+                    appServices: {
+                        content: [],
+                        totalElements: 0,
+                        totalPages: 0
+                    },
+                    // 端口管理页面数据
+                    portQueryForm: {
+                        page: 1,
+                        size: 30
+                    },
+                    portList: {
+                        content: [],
+                        totalElements: 0,
+                        totalPages: 0
+                    },
+                    // 防火墙管理页面数据
+                    firewallStatus: {
+                        enabled: false,
+                        totalRules: 0,
+                        inputRules: 0,
+                        outputRules: 0,
+                        forwardRules: 0
+                    },
+                    firewallRuleQueryForm: {
+                        page: 1,
+                        size: 30
+                    },
+                    firewallRules: {
+                        content: [],
+                        totalElements: 0,
+                        totalPages: 0
+                    },
+                    firewallRuleDialogVisible: false,
+                    dialogType: 'add', // add, edit, delete
+                    dialogTitle: '添加防火墙规则',
+                    firewallRuleForm: {
+                        id: null,
+                        chain: 'INPUT',
+                        action: 'ACCEPT',
+                        protocol: 'tcp',
+                        source: '',
+                        destination: '',
+                        port: ''
+                    }
+                }
+            },
+            created() {
+                this.fetchSystemStatus();
+                this.fetchThresholdAlerts();
+                this.fetchMonitorStatus();
+                
+                // 根据当前页面加载相应数据
+                if (this.currentPage === '3-1') {
+                    this.fetchAppServices();
+                } else if (this.currentPage === '3-2') {
+                    this.fetchPortList();
+                } else if (this.currentPage === '3-3') {
+                    this.fetchFirewallStatus();
+                    this.fetchFirewallRules();
+                } else if (this.currentPage === '4-1') {
+                    this.fetchThresholdSettings();
+                } else if (this.currentPage === '4-2') {
+                    this.fetchWebhookSettings();
+                }
+            },
+            methods: {
+                handleSelect(key) {
+                    this.currentPage = key;
+                    if (key === '1-1') {
+                        this.$nextTick(() => {
+                            this.fetchSystemStatus();
+                            this.fetchThresholdAlerts();
+                        });
+                    } else if (key === '3-1') {
+                        this.$nextTick(() => {
+                            this.fetchAppServices();
+                        });
+                    } else if (key === '3-2') {
+                        this.$nextTick(() => {
+                            this.fetchPortList();
+                        });
+                    } else if (key === '3-3') {
+                        this.$nextTick(() => {
+                            this.fetchFirewallStatus();
+                            this.fetchFirewallRules();
+                        });
+                    } else if (key === '4-1') {
+                        this.$nextTick(() => {
+                            this.fetchThresholdSettings();
+                        });
+                    } else if (key === '4-2') {
+                        this.$nextTick(() => {
+                            this.fetchWebhookSettings();
+                        });
+                        this.$nextTick(() => {
+                            this.fetchFirewallStatus();
+                            this.fetchFirewallRules();
+                        });
+                    }
+                },
+                getPageTitle() {
+                    const titles = {
+                        '1-1': '监控主页',
+                        '1-2': '阈值告警查询',
+                        '2-1': '异常检测状态',
+                        '2-2': '异常检测告警',
+                        '3-1': '服务管理',
+                        '3-2': '端口管理',
+                        '3-3': '防火墙管理',
+                        '4-1': '阈值管理',
+                        '4-2': 'WebHook配置',
+                        '4-3': '管理员密码修改'
+                    };
+                    return titles[this.currentPage] || '未知页面';
+                },
+                fetchSystemStatus() {
+                    this.loading = true;
+                    axios.get('/api/system/status?timeline=recent')
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.systemStatus = response.data.data;
+                                this.$nextTick(() => {
+                                    this.initCharts();
+                                });
+                            } else {
+                                this.$message.error('获取系统状态数据失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取系统状态数据出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                fetchThresholdAlerts() {
+                    axios.get('/api/system/threshold_alert')
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.thresholdAlerts = response.data.data.content.slice(0, 15); // 只显示前15条
+                            } else {
+                                this.$message.error('获取阈值预警数据失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取阈值预警数据出错: ' + error.message);
+                        });
+                },
+                initCharts() {
+                    // 准备数据
+                    const timestamps = this.systemStatus.map(item => this.formatTime(item.timestamp)).reverse();
+                    const cpuData = this.systemStatus.map(item => item.cpuUsage).reverse();
+                    const memoryData = this.systemStatus.map(item => item.memoryUsage).reverse();
+                    const storageData = this.systemStatus.map(item => item.storageUsage).reverse();
+                    
+                    // 初始化CPU图表
+                    const cpuChart = echarts.init(document.getElementById('cpuChart'));
+                    cpuChart.setOption({
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: timestamps,
+                            axisLabel: {
+                                rotate: 45,
+                                fontSize: 10
+                            }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            min: 0,
+                            max: 100,
+                            axisLabel: {
+                                formatter: '{value}%'
+                            }
+                        },
+                        series: [{
+                            data: cpuData,
+                            type: 'line',
+                            name: 'CPU使用率',
+                            smooth: true,
+                            lineStyle: {
+                                color: '#409EFF'
+                            },
+                            areaStyle: {
+                                color: {
+                                    type: 'linear',
+                                    x: 0,
+                                    y: 0,
+                                    x2: 0,
+                                    y2: 1,
+                                    colorStops: [{
+                                        offset: 0, color: 'rgba(103,194,58,0.3)'
+                                    }, {
+                                        offset: 1, color: 'rgba(103,194,58,0.1)'
+                                    }]
+                                }
+                            }
+                        }]
+                    });
+                    
+                    // 初始化存储图表
+                    const storageChart = echarts.init(document.getElementById('storageChart'));
+                    storageChart.setOption({
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: timestamps,
+                            axisLabel: {
+                                rotate: 45,
+                                fontSize: 10
+                            }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            min: 0,
+                            max: 100,
+                            axisLabel: {
+                                formatter: '{value}%'
+                            }
+                        },
+                        series: [{
+                            data: storageData,
+                            type: 'line',
+                            name: '存储使用率',
+                            smooth: true,
+                            lineStyle: {
+                                color: '#E6A23C'
+                            },
+                            areaStyle: {
+                                color: {
+                                    type: 'linear',
+                                    x: 0,
+                                    y: 0,
+                                    x2: 0,
+                                    y2: 1,
+                                    colorStops: [{
+                                        offset: 0, color: 'rgba(230,162,60,0.3)'
+                                    }, {
+                                        offset: 1, color: 'rgba(230,162,60,0.1)'
+                                    }]
+                                }
+                            }
+                        }]
+                    });
+                    
+                    // 初始化内存图表
+                    const memoryChart = echarts.init(document.getElementById('memoryChart'));
+                    memoryChart.setOption({
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        xAxis: {
+                            type: 'category',
+                            data: timestamps,
+                            axisLabel: {
+                                rotate: 45,
+                                fontSize: 10
+                            }
+                        },
+                        yAxis: {
+                            type: 'value',
+                            min: 0,
+                            max: 100,
+                            axisLabel: {
+                                formatter: '{value}%'
+                            }
+                        },
+                        series: [{
+                            data: memoryData,
+                            type: 'line',
+                            name: '内存使用率',
+                            smooth: true,
+                            lineStyle: {
+                                color: '#67C23A'
+                            },
+                            areaStyle: {
+                                color: {
+                                    type: 'linear',
+                                    x: 0,
+                                    y: 0,
+                                    x2: 0,
+                                    y2: 1,
+                                    colorStops: [{
+                                        offset: 0, color: 'rgba(103,194,58,0.3)'
+                                    }, {
+                                        offset: 1, color: 'rgba(103,194,58,0.1)'
+                                    }]
+                                }
+                            }
+                        }]
+                    });
+                    
+                    // 窗口大小变化时重新调整图表大小
+                    window.addEventListener('resize', () => {
+                        cpuChart.resize();
+                        memoryChart.resize();
+                        storageChart.resize();
+                    });
+                },
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+                },
+                formatTime(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+                },
+                goToAlertQuery() {
+                    this.currentPage = '1-2';
+                    this.searchThresholdAlerts();
+                },
+                
+                // 阈值告警查询页面方法
+                searchThresholdAlerts() {
+                    this.loading = true;
+                    let url = `/api/system/threshold_alert?page=${this.thresholdQueryForm.page}&size=${this.thresholdQueryForm.size}`;
+                    if (this.thresholdQueryForm.alertType) {
+                        url += `&alertType=${this.thresholdQueryForm.alertType}`;
+                    }
+                    
+                    axios.get(url)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.thresholdAlertsPage = response.data.data;
+                            } else {
+                                this.$message.error('获取阈值告警数据失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取阈值告警数据出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                handleThresholdPageChange(page) {
+                    this.thresholdQueryForm.page = page;
+                    this.searchThresholdAlerts();
+                },
+                
+                goToThresholdManage() {
+                    this.currentPage = '4-1';
+                },
+                
+                // 异常检测状态页面方法
+                fetchMonitorStatus() {
+                    axios.get('/api/traffics/status')
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.monitorStatus = response.data.data;
+                            } else {
+                                this.$message.error('获取监控状态失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取监控状态出错: ' + error.message);
+                        });
+                },
+                
+                toggleSshMonitoring(status) {
+                    const url = status ? '/api/traffics/ssh/enable' : '/api/traffics/ssh/disable';
+                    axios.post(url)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.$message.success(response.data.data.message);
+                                this.monitorStatus.sshMonitoring = response.data.data.status;
+                            } else {
+                                this.$message.error('操作失败: ' + response.data.message);
+                                // 恢复开关状态
+                                this.monitorStatus.sshMonitoring = !status;
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('操作出错: ' + error.message);
+                            // 恢复开关状态
+                            this.monitorStatus.sshMonitoring = !status;
+                        });
+                },
+                
+                toggleHttpMonitoring(status) {
+                    const url = status ? '/api/traffics/http/enable' : '/api/traffics/http/disable';
+                    axios.post(url)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.$message.success(response.data.data.message);
+                                this.monitorStatus.httpMonitoring = response.data.data.status;
+                            } else {
+                                this.$message.error('操作失败: ' + response.data.message);
+                                // 恢复开关状态
+                                this.monitorStatus.httpMonitoring = !status;
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('操作出错: ' + error.message);
+                            // 恢复开关状态
+                            this.monitorStatus.httpMonitoring = !status;
+                        });
+                },
+                
+                // 异常检测告警页面方法
+                searchSecurityAlerts() {
+                    this.loading = true;
+                    let url = `/api/traffics/alert?page=${this.securityQueryForm.page}&size=${this.securityQueryForm.size}`;
+                    if (this.securityQueryForm.detectWay !== null) {
+                        url += `&detectWay=${this.securityQueryForm.detectWay}`;
+                    }
+                    if (this.securityQueryForm.alertType) {
+                        url += `&alertType=${this.securityQueryForm.alertType}`;
+                    }
+                    
+                    axios.get(url)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.securityAlertsPage = response.data.data;
+                            } else {
+                                this.$message.error('获取安全告警数据失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取安全告警数据出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                handleSecurityPageChange(page) {
+                    this.securityQueryForm.page = page;
+                    this.searchSecurityAlerts();
+                },
+                
+                // 服务管理页面方法
+                fetchAppServices() {
+                    this.loading = true;
+                    let url = `/api/appservice/list?page=${this.appServiceQueryForm.page}&size=${this.appServiceQueryForm.size}`;
+                    
+                    axios.get(url)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.appServices = response.data.data;
+                            } else {
+                                this.$message.error('获取服务列表失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取服务列表出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                handleAppServicePageChange(page) {
+                    this.appServiceQueryForm.page = page;
+                    this.fetchAppServices();
+                },
+                
+                manageService(servicename, action) {
+                    this.loading = true;
+                    axios.post(`/api/appservice/action?action=${action}&servicename=${servicename}`)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.$message.success(response.data.message);
+                                // 刷新服务列表
+                                this.fetchAppServices();
+                            } else {
+                                this.$message.error('操作失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('操作出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                // 端口管理页面方法
+                fetchPortList() {
+                    this.loading = true;
+                    let url = `/api/port/list?page=${this.portQueryForm.page}&size=${this.portQueryForm.size}`;
+                    
+                    axios.get(url)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.portList = response.data.data;
+                            } else {
+                                this.$message.error('获取端口列表失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取端口列表出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                handlePortPageChange(page) {
+                    this.portQueryForm.page = page;
+                    this.fetchPortList();
+                },
+                
+                killPort(pid, force) {
+                    const url = force ? '/api/port/forcekill' : '/api/port/kill';
+                    this.loading = true;
+                    
+                    axios.post(`${url}?pid=${pid}`)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.$message.success(response.data.data);
+                                // 刷新端口列表
+                                this.fetchPortList();
+                            } else {
+                                this.$message.error('操作失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('操作出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                // 防火墙管理页面方法
+                fetchFirewallStatus() {
+                    axios.get('/api/firewall/status')
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.firewallStatus = response.data.data;
+                            } else {
+                                this.$message.error('获取防火墙状态失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取防火墙状态出错: ' + error.message);
+                        });
+                },
+                
+                fetchFirewallRules() {
+                    this.loading = true;
+                    let url = `/api/firewall/rules?page=${this.firewallRuleQueryForm.page}&size=${this.firewallRuleQueryForm.size}`;
+                    
+                    axios.get(url)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.firewallRules = response.data.data;
+                            } else {
+                                this.$message.error('获取防火墙规则失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取防火墙规则出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                handleFirewallRulePageChange(page) {
+                    this.firewallRuleQueryForm.page = page;
+                    this.fetchFirewallRules();
+                },
+                
+                toggleFirewall(enable) {
+                    const url = enable ? '/api/firewall/enable' : '/api/firewall/disable';
+                    this.loading = true;
+                    
+                    axios.post(url)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.$message.success(response.data.data);
+                                // 刷新防火墙状态
+                                this.fetchFirewallStatus();
+                            } else {
+                                this.$message.error('操作失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('操作出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                openFirewallRuleDialog(type, row) {
+                    this.dialogType = type;
+                    
+                    if (type === 'add') {
+                        this.dialogTitle = '添加防火墙规则';
+                        this.firewallRuleForm = {
+                            id: null,
+                            chain: 'INPUT',
+                            action: 'ACCEPT',
+                            protocol: 'tcp',
+                            source: '',
+                            destination: '',
+                            port: ''
+                        };
+                    } else if (type === 'edit') {
+                        this.dialogTitle = '编辑防火墙规则';
+                        this.firewallRuleForm = JSON.parse(JSON.stringify(row));
+                    } else if (type === 'delete') {
+                        this.dialogTitle = '删除防火墙规则';
+                        this.firewallRuleForm = { id: row.id };
+                    }
+                    
+                    this.firewallRuleDialogVisible = true;
+                },
+                
+                submitFirewallRule() {
+                    if (this.dialogType === 'add') {
+                        // 添加规则
+                        axios.post('/api/firewall/rules', this.firewallRuleForm)
+                            .then(response => {
+                                if (response.data.code === 0) {
+                                    this.$message.success('防火墙规则添加成功');
+                                    this.firewallRuleDialogVisible = false;
+                                    this.fetchFirewallRules();
+                                } else {
+                                    this.$message.error('添加失败: ' + response.data.message);
+                                }
+                            })
+                            .catch(error => {
+                                this.$message.error('添加出错: ' + error.message);
+                            });
+                    } else if (this.dialogType === 'edit') {
+                        // 修改规则
+                        axios.put(`/api/firewall/rules/${this.firewallRuleForm.id}`, this.firewallRuleForm)
+                            .then(response => {
+                                if (response.data.code === 0) {
+                                    this.$message.success('防火墙规则更新成功');
+                                    this.firewallRuleDialogVisible = false;
+                                    this.fetchFirewallRules();
+                                } else {
+                                    this.$message.error('更新失败: ' + response.data.message);
+                                }
+                            })
+                            .catch(error => {
+                                this.$message.error('更新出错: ' + error.message);
+                            });
+                    } else if (this.dialogType === 'delete') {
+                        // 删除规则
+                        axios.delete(`/api/firewall/rules/${this.firewallRuleForm.id}`)
+                            .then(response => {
+                                if (response.data.code === 0) {
+                                    this.$message.success('防火墙规则删除成功');
+                                    this.firewallRuleDialogVisible = false;
+                                    this.fetchFirewallRules();
+                                } else {
+                                    this.$message.error('删除失败: ' + response.data.message);
+                                }
+                            })
+                            .catch(error => {
+                                this.$message.error('删除出错: ' + error.message);
+                            });
+                    }
+                },
+                
+                // 阈值管理页面方法
+                fetchThresholdSettings() {
+                    this.loading = true;
+                    axios.get('/api/system/get_threshold')
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.thresholdForm = response.data.data;
+                                this.$message.success('获取阈值设置成功');
+                            } else {
+                                this.$message.error('获取阈值设置失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取阈值设置出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                updateThreshold() {
+                    this.loading = true;
+                    axios.post('/api/system/change_threshold', this.thresholdForm)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.$message.success('阈值设置更新成功');
+                            } else {
+                                this.$message.error('阈值设置更新失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('阈值设置更新出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                // WebHook配置页面方法
+                fetchWebhookSettings() {
+                    this.loading = true;
+                    axios.get('/api/server/webhook')
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.webhookForm = response.data.data;
+                                this.$message.success('获取WebHook配置成功');
+                            } else {
+                                this.$message.error('获取WebHook配置失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('获取WebHook配置出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                updateWebhook() {
+                    this.loading = true;
+                    axios.post('/api/server/change_webhook', this.webhookForm)
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.$message.success('WebHook配置更新成功');
+                            } else {
+                                this.$message.error('WebHook配置更新失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('WebHook配置更新出错: ' + error.message);
+                        })
+                        .finally(() => {
+                            this.loading = false;
+                        });
+                },
+                
+                // 管理员密码修改页面方法
+                resetPasswordForm() {
+                    this.$refs.passwordForm.resetFields();
+                },
+                
+                changePassword() {
+                    this.$refs.passwordForm.validate(valid => {
+                        if (valid) {
+                            if (this.passwordForm.newPassword !== this.passwordForm.confirmPassword) {
+                                this.$message.error('两次输入的密码不一致');
+                                return;
+                            }
+                            
+                            this.loading = true;
+                            const params = new URLSearchParams();
+                            params.append('username', this.passwordForm.username);
+                            params.append('oldPassword', this.passwordForm.oldPassword);
+                            params.append('newPassword', this.passwordForm.newPassword);
+                            
+                            axios.post('/api/server/changepsw', params)
+                                .then(response => {
+                                    if (response.data.code === 0) {
+                                        this.$message.success('密码修改成功');
+                                        this.resetPasswordForm();
+                                    } else {
+                                        this.$message.error('密码修改失败: ' + response.data.message);
+                                    }
+                                })
+                                .catch(error => {
+                                    this.$message.error('密码修改出错: ' + error.message);
+                                })
+                                .finally(() => {
+                                    this.loading = false;
+                                });
+                        }
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>
