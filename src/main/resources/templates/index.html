@@ -110,6 +110,10 @@
                     <el-menu-item index="4-2">WebHook配置</el-menu-item>
                     <el-menu-item index="4-3">管理员密码修改</el-menu-item>
                 </el-submenu>
+                <el-menu-item index="5" @click="logout">
+                    <i class="el-icon-switch-button"></i>
+                    <span slot="title">退出登录</span>
+                </el-menu-item>
             </el-menu>
         </div>
         
@@ -954,6 +958,10 @@
                         //     this.fetchFirewallRules();
                         // });
                     }
+                },
+                logout() {
+                    // 调用Spring Security提供的注销功能
+                    window.location.href = '/logout';
                 },
                 getPageTitle() {
                     const titles = {
