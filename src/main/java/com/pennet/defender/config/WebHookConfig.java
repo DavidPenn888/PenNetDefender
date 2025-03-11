@@ -1,7 +1,9 @@
 package com.pennet.defender.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
 @Component
 public class WebHookConfig {
@@ -17,6 +19,11 @@ public class WebHookConfig {
 
     @Value("${alert.webhook.dingding.url}")
     private String dingdingWebhook;
+
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
 
     public boolean isWechatEnable() {
         return wechatEnable;

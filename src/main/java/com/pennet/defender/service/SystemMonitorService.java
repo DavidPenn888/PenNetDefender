@@ -33,7 +33,7 @@ public class SystemMonitorService {
     @Autowired
     private WebHookConfig webHookConfig;
 
-//    @Autowired
+    @Autowired
     private RestTemplate restTemplate;
 
     public void saveSystemStatus(double cpuUsage, double memoryUsage, double storageUsage) {
