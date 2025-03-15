@@ -28,6 +28,41 @@ public class PortQueryService {
         return portRepository.findAllByOrderByProcessNameAsc(pageable);
     }
 
+    // 获取进程的子进程ID列表
+    private String getChildProcessIds(int pid) {
+        StringBuilder childPids = new StringBuilder();
+        try {
+            // 使用ps命令获取子进程信息
+            Process process = Runtime.getRuntime().exec("ps --ppid " + pid);
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                boolean skipHeader = true;
+                
+                while ((line = reader.readLine()) != null) {
+                    if (skipHeader) {
+                        skipHeader = false;
+                        continue;
+                    }
+                    
+                    // 提取子进程PID
+                    Pattern pidPattern = Pattern.compile("^\\s*(\\d+)\\s+.*");
+                    Matcher pidMatcher = pidPattern.matcher(line);
+                    
+                    if (pidMatcher.find()) {
+                        if (childPids.length() > 0) {
+                            childPids.append(",");
+                        }
+                        childPids.append(pidMatcher.group(1));
+                    }
+                }
+            }
+        } catch (IOException e) {
+            // 如果出错，返回空字符串
+            return "";
+        }
+        return childPids.toString();
+    }
+
     public void refreshPorts() throws IOException {
         // Clear existing ports
         portRepository.deleteAll();
@@ -114,8 +149,13 @@ public class PortQueryService {
                     }
 
                     if (processMatcher.find()) {
-                        port.setProcessId(Integer.parseInt(processMatcher.group(1)));
+                        int pid = Integer.parseInt(processMatcher.group(1));
+                        port.setProcessId(pid);
                         port.setProcessName(processMatcher.group(2));
+                        
+                        // 获取并设置子进程ID
+                        String childPids = getChildProcessIds(pid);
+                        port.setChildProcessIds(childPids);
                     }
 
                     if (stateMatcher.find()) {

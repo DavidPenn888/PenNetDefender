@@ -188,8 +188,8 @@
                             <el-form-item label="告警类型">
                                 <el-select v-model="thresholdQueryForm.alertType" placeholder="选择告警类型" clearable>
                                     <el-option label="CPU" value="CPU"></el-option>
-                                    <el-option label="Memory" value="Memory"></el-option>
-                                    <el-option label="Storage" value="Storage"></el-option>
+                                    <el-option label="内存" value="内存"></el-option>
+                                    <el-option label="存储" value="存储"></el-option>
                                 </el-select>
                             </el-form-item>
                             <el-form-item>
@@ -420,7 +420,7 @@
                         </el-table-column>
                         <el-table-column
                             label="操作"
-                            width="350">
+                            width="400">
                             <template slot-scope="scope">
                                 <el-button size="mini" type="primary" @click="manageService(scope.row.name, 'start')">开启</el-button>
                                 <el-button size="mini" type="danger" @click="manageService(scope.row.name, 'stop')">关闭</el-button>
@@ -479,6 +479,11 @@
                             prop="processId"
                             label="进程ID"
                             width="100">
+                        </el-table-column>
+                        <el-table-column
+                            prop="childProcessIds"
+                            label="子进程ID"
+                            width="150">
                         </el-table-column>
                         <el-table-column
                             prop="state"
@@ -544,84 +549,211 @@
                 
                 <!-- 防火墙规则列表 -->
                 <div class="section-title">防火墙规则</div>
-                <div class="alert-table">
-                    <div style="margin-bottom: 20px; text-align: right;">
-                        <el-button type="primary" @click="openFirewallRuleDialog('add')">添加规则</el-button>
-                    </div>
+                <div style="margin-bottom: 20px; text-align: right;">
+                    <el-button type="primary" @click="openFirewallRuleDialog('add')">添加规则</el-button>
+                </div>
+                
+                <!-- 使用标签页分开显示三种规则 -->
+                <el-tabs type="border-card">
+                    <!-- INPUT规则 -->
+                    <el-tab-pane label="INPUT规则">
+                        <div class="alert-table">
+                            <el-table
+                                :data="getFilteredRules('INPUT')"
+                                style="width: 100%"
+                                border
+                                v-loading="loading">
+                                <el-table-column
+                                    prop="id"
+                                    label="ID"
+                                    width="80">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="action"
+                                    label="动作"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="protocol"
+                                    label="协议"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="source"
+                                    label="源地址"
+                                    width="140">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="destination"
+                                    label="目标地址"
+                                    width="140">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="port"
+                                    label="端口"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="priority"
+                                    label="优先级"
+                                    width="80">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="lastUpdated"
+                                    label="最后更新时间"
+                                    width="180">
+                                    <template slot-scope="scope">
+                                        {{ formatDate(scope.row.lastUpdated) }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column
+                                    label="操作"
+                                    width="150">
+                                    <template slot-scope="scope">
+                                        <el-button size="mini" type="primary" @click="openFirewallRuleDialog('edit', scope.row)">编辑</el-button>
+                                        <el-button size="mini" type="danger" @click="openFirewallRuleDialog('delete', scope.row)">删除</el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                    </el-tab-pane>
                     
-                    <el-table
-                        :data="firewallRules.content"
-                        style="width: 100%"
-                        border
-                        v-loading="loading">
-                        <el-table-column
-                            prop="id"
-                            label="ID"
-                            width="80">
-                        </el-table-column>
-                        <el-table-column
-                            prop="chain"
-                            label="链"
-                            width="100">
-                        </el-table-column>
-                        <el-table-column
-                            prop="action"
-                            label="动作"
-                            width="100">
-                        </el-table-column>
-                        <el-table-column
-                            prop="protocol"
-                            label="协议"
-                            width="100">
-                        </el-table-column>
-                        <el-table-column
-                            prop="source"
-                            label="源地址"
-                            width="140">
-                        </el-table-column>
-                        <el-table-column
-                            prop="destination"
-                            label="目标地址"
-                            width="140">
-                        </el-table-column>
-                        <el-table-column
-                            prop="port"
-                            label="端口"
-                            width="100">
-                        </el-table-column>
-                        <el-table-column
-                            prop="priority"
-                            label="优先级"
-                            width="80">
-                        </el-table-column>
-                        <el-table-column
-                            prop="lastUpdated"
-                            label="最后更新时间"
-                            width="180">
-                            <template slot-scope="scope">
-                                {{ formatDate(scope.row.lastUpdated) }}
-                            </template>
-                        </el-table-column>
-                        <el-table-column
-                            label="操作"
-                            width="150">
-                            <template slot-scope="scope">
-                                <el-button size="mini" type="primary" @click="openFirewallRuleDialog('edit', scope.row)">编辑</el-button>
-                                <el-button size="mini" type="danger" @click="openFirewallRuleDialog('delete', scope.row)">删除</el-button>
-                            </template>
-                        </el-table-column>
-                    </el-table>
+                    <!-- OUTPUT规则 -->
+                    <el-tab-pane label="OUTPUT规则">
+                        <div class="alert-table">
+                            <el-table
+                                :data="getFilteredRules('OUTPUT')"
+                                style="width: 100%"
+                                border
+                                v-loading="loading">
+                                <el-table-column
+                                    prop="id"
+                                    label="ID"
+                                    width="80">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="action"
+                                    label="动作"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="protocol"
+                                    label="协议"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="source"
+                                    label="源地址"
+                                    width="140">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="destination"
+                                    label="目标地址"
+                                    width="140">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="port"
+                                    label="端口"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="priority"
+                                    label="优先级"
+                                    width="80">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="lastUpdated"
+                                    label="最后更新时间"
+                                    width="180">
+                                    <template slot-scope="scope">
+                                        {{ formatDate(scope.row.lastUpdated) }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column
+                                    label="操作"
+                                    width="150">
+                                    <template slot-scope="scope">
+                                        <el-button size="mini" type="primary" @click="openFirewallRuleDialog('edit', scope.row)">编辑</el-button>
+                                        <el-button size="mini" type="danger" @click="openFirewallRuleDialog('delete', scope.row)">删除</el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                    </el-tab-pane>
                     
-                    <!-- 分页 -->
-                    <div style="margin-top: 20px; text-align: right;">
-                        <el-pagination
-                            @current-change="handleFirewallRulePageChange"
-                            :current-page="firewallRuleQueryForm.page"
-                            :page-size="firewallRuleQueryForm.size"
-                            layout="total, prev, pager, next"
-                            :total="firewallRules.totalElements">
-                        </el-pagination>
-                    </div>
+                    <!-- FORWARD规则 -->
+                    <el-tab-pane label="FORWARD规则">
+                        <div class="alert-table">
+                            <el-table
+                                :data="getFilteredRules('FORWARD')"
+                                style="width: 100%"
+                                border
+                                v-loading="loading">
+                                <el-table-column
+                                    prop="id"
+                                    label="ID"
+                                    width="80">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="action"
+                                    label="动作"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="protocol"
+                                    label="协议"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="source"
+                                    label="源地址"
+                                    width="140">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="destination"
+                                    label="目标地址"
+                                    width="140">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="port"
+                                    label="端口"
+                                    width="100">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="priority"
+                                    label="优先级"
+                                    width="80">
+                                </el-table-column>
+                                <el-table-column
+                                    prop="lastUpdated"
+                                    label="最后更新时间"
+                                    width="180">
+                                    <template slot-scope="scope">
+                                        {{ formatDate(scope.row.lastUpdated) }}
+                                    </template>
+                                </el-table-column>
+                                <el-table-column
+                                    label="操作"
+                                    width="150">
+                                    <template slot-scope="scope">
+                                        <el-button size="mini" type="primary" @click="openFirewallRuleDialog('edit', scope.row)">编辑</el-button>
+                                        <el-button size="mini" type="danger" @click="openFirewallRuleDialog('delete', scope.row)">删除</el-button>
+                                    </template>
+                                </el-table-column>
+                            </el-table>
+                        </div>
+                    </el-tab-pane>
+                </el-tabs>
+                
+                <!-- 分页 -->
+                <div style="margin-top: 20px; text-align: right;">
+                    <el-pagination
+                        @current-change="handleFirewallRulePageChange"
+                        :current-page="firewallRuleQueryForm.page"
+                        :page-size="firewallRuleQueryForm.size"
+                        layout="total, prev, pager, next"
+                        :total="firewallRules.totalElements">
+                    </el-pagination>
                 </div>
                 
                 <!-- 防火墙规则对话框 -->
@@ -657,6 +789,10 @@
                         </el-form-item>
                         <el-form-item label="端口">
                             <el-input v-model="firewallRuleForm.port" placeholder="例如: 80 或 22"></el-input>
+                        </el-form-item>
+                        <el-form-item label="优先级" required>
+                            <el-input-number v-model="firewallRuleForm.priority" :min="1" :max="100" :step="1" placeholder="规则优先级"></el-input-number>
+                            <div style="font-size: 12px; color: #909399; margin-top: 5px;">数字越小优先级越高，1-100之间</div>
                         </el-form-item>
                     </el-form>
                     <div v-if="dialogType === 'delete'" style="text-align: center;">
@@ -901,7 +1037,8 @@
                         protocol: 'tcp',
                         source: '',
                         destination: '',
-                        port: ''
+                        port: '',
+                        priority: 0
                     }
                 }
             },
@@ -911,7 +1048,11 @@
                 this.fetchMonitorStatus();
                 
                 // 根据当前页面加载相应数据
-                if (this.currentPage === '3-1') {
+                if (this.currentPage === '1-2') {
+                    this.searchThresholdAlerts();
+                } else if (this.currentPage === '2-2') {
+                    this.searchSecurityAlerts();
+                } else if (this.currentPage === '3-1') {
                     this.fetchAppServices();
                 } else if (this.currentPage === '3-2') {
                     this.fetchPortList();
@@ -925,6 +1066,14 @@
                 }
             },
             methods: {
+                // 根据链类型过滤规则
+                getFilteredRules(chainType) {
+                    if (!this.firewallRules || !this.firewallRules.content) {
+                        return [];
+                    }
+                    return this.firewallRules.content.filter(rule => rule.chain === chainType);
+                },
+                
                 handleSelect(key) {
                     this.currentPage = key;
                     if (key === '1-1') {
@@ -1179,6 +1328,10 @@
                 goToAlertQuery() {
                     this.currentPage = '1-2';
                     this.searchThresholdAlerts();
+                    // 更新左侧导航栏的选中状态
+                    this.$nextTick(() => {
+                        document.querySelector('.el-menu').setAttribute('default-active', '1-2');
+                    });
                 },
                 
                 // 阈值告警查询页面方法
@@ -1212,6 +1365,10 @@
                 
                 goToThresholdManage() {
                     this.currentPage = '4-1';
+                    // 更新左侧导航栏的选中状态
+                    this.$nextTick(() => {
+                        document.querySelector('.el-menu').setAttribute('default-active', '4-1');
+                    });
                 },
                 
                 // 异常检测状态页面方法
@@ -1469,11 +1626,16 @@
                             protocol: 'tcp',
                             source: '',
                             destination: '',
-                            port: ''
+                            port: '',
+                            priority: 50 // 设置默认优先级为中间值
                         };
                     } else if (type === 'edit') {
                         this.dialogTitle = '编辑防火墙规则';
                         this.firewallRuleForm = JSON.parse(JSON.stringify(row));
+                        // 确保优先级字段有值
+                        if (this.firewallRuleForm.priority === null || this.firewallRuleForm.priority === undefined) {
+                            this.firewallRuleForm.priority = 50;
+                        }
                     } else if (type === 'delete') {
                         this.dialogTitle = '删除防火墙规则';
                         this.firewallRuleForm = { id: row.id };

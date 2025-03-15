@@ -14,6 +14,7 @@ public class Port {
     private String protocol;
     private String processName;
     private Integer processId;
+    private String childProcessIds; // 新增字段，用于存储子进程ID
     private String state;
     private LocalDateTime lastUpdated;
 
@@ -55,6 +56,14 @@ public class Port {
 
     public void setProcessId(Integer processId) {
         this.processId = processId;
+    }
+    
+    public String getChildProcessIds() {
+        return childProcessIds;
+    }
+
+    public void setChildProcessIds(String childProcessIds) {
+        this.childProcessIds = childProcessIds;
     }
 
     public String getState() {

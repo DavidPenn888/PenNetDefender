@@ -36,28 +36,60 @@ public class SystemMonitorService {
     @Autowired
     private RestTemplate restTemplate;
 
-    public void saveSystemStatus(double cpuUsage, double memoryUsage, double storageUsage) {
-        SystemStatus status = new SystemStatus();
-        status.setTimestamp(LocalDateTime.now());
-        status.setCpuUsage(cpuUsage);
-        status.setMemoryUsage(memoryUsage);
-        status.setStorageUsage(storageUsage);
+//    public void saveSystemStatus(double cpuUsage, double memoryUsage, double storageUsage) {
+//        SystemStatus status = new SystemStatus();
+//        status.setTimestamp(LocalDateTime.now());
+//        status.setCpuUsage(cpuUsage);
+//        status.setMemoryUsage(memoryUsage);
+//        status.setStorageUsage(storageUsage);
+//
+//        if (cpuUsage > thresholdConfig.getCpuThreshold()) {
+//            String formattedCpuUsage = String.format("%.2f", cpuUsage);
+//            sendAlert("CPU", "CPU 使用率过高: " + formattedCpuUsage + "%，超过阈值" + String.format("", thresholdConfig.getCpuThreshold()) + "%");
+//            thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "CPU", "CPU 使用率为：" + formattedCpuUsage + "%，超过阈值" + String.format("", thresholdConfig.getCpuThreshold()) + "%"));
+//        }
+//        if (memoryUsage > thresholdConfig.getMemoryThreshold()) {
+//            String formattedMemoryUsage = String.format("%.2f", memoryUsage);
+//            sendAlert("内存", "内存使用率过高: " + formattedMemoryUsage + "%，超过阈值" + String.format("", thresholdConfig.getMemoryThreshold()) + "%");
+//            thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "内存", "内存使用率为：" + formattedMemoryUsage + "%，超过阈值" + String.format("", thresholdConfig.getMemoryThreshold()) + "%"));
+//        }
+//        if (storageUsage > thresholdConfig.getStorageThreshold()) {
+//            String formattedStorageUsage = String.format("%.2f", storageUsage);
+//            sendAlert("存储", "存储使用率过高: " + formattedStorageUsage + "%，超过阈值" + String.format("", thresholdConfig.getStorageThreshold()) + "%");
+//            thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "存储", "存储使用率为：" + formattedStorageUsage + "%，超过阈值" + String.format("", thresholdConfig.getStorageThreshold()) + "%"));
+//        }
+//
+//        systemStatusRepository.save(status);
+//    }
+public void saveSystemStatus(double cpuUsage, double memoryUsage, double storageUsage) {
+    // 预处理：统一格式化为两位小数
+    double formattedCpuUsage = Double.parseDouble(String.format("%.2f", cpuUsage));
+    double formattedMemoryUsage = Double.parseDouble(String.format("%.2f", memoryUsage));
+    double formattedStorageUsage = Double.parseDouble(String.format("%.2f", storageUsage));
 
-        if (cpuUsage > thresholdConfig.getCpuThreshold()) {
-            sendAlert("CPU", "CPU 使用率过高: " + cpuUsage + "%");
-            thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "CPU", "CPU usage: " + cpuUsage + "%"));
-        }
-        if (memoryUsage > thresholdConfig.getMemoryThreshold()) {
-            sendAlert("Memory", "内存使用率过高: " + memoryUsage + "%");
-            thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "Memory", "Memory usage: " + memoryUsage + "%"));
-        }
-        if (storageUsage > thresholdConfig.getStorageThreshold()) {
-            sendAlert("Storage", "存储使用率过高: " + storageUsage + "%");
-            thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "Storage", "Storage usage: " + storageUsage + "%"));
-        }
+    // 创建并保存状态对象
+    SystemStatus status = new SystemStatus();
+    status.setTimestamp(LocalDateTime.now());
+    status.setCpuUsage(formattedCpuUsage);
+    status.setMemoryUsage(formattedMemoryUsage);
+    status.setStorageUsage(formattedStorageUsage);
 
-        systemStatusRepository.save(status);
+    // 检查阈值并发送警报
+    if (formattedCpuUsage > thresholdConfig.getCpuThreshold()) {
+        sendAlert("CPU", "CPU 使用率过高: " + formattedCpuUsage + "%，超过阈值" + thresholdConfig.getCpuThreshold() + "%");
+        thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "CPU", "CPU 使用率为：" + formattedCpuUsage + "%，超过阈值" + thresholdConfig.getCpuThreshold() + "%"));
     }
+    if (formattedMemoryUsage > thresholdConfig.getMemoryThreshold()) {
+        sendAlert("内存", "内存使用率过高: " + formattedMemoryUsage + "%，超过阈值" + thresholdConfig.getMemoryThreshold() + "%");
+        thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "内存", "内存使用率为：" + formattedMemoryUsage + "%，超过阈值" + thresholdConfig.getMemoryThreshold() + "%"));
+    }
+    if (formattedStorageUsage > thresholdConfig.getStorageThreshold()) {
+        sendAlert("存储", "存储使用率过高: " + formattedStorageUsage + "%，超过阈值" + thresholdConfig.getStorageThreshold() + "%");
+        thresholdAlertRepository.save(new ThresholdAlert(LocalDateTime.now(), "存储", "存储使用率为：" + formattedStorageUsage + "%，超过阈值" + thresholdConfig.getStorageThreshold() + "%"));
+    }
+
+    systemStatusRepository.save(status);
+}
 
 //    public List<SystemStatus> getStatusLast24Hours() {
 //        LocalDateTime now = LocalDateTime.now();

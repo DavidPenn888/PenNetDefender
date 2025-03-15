@@ -40,7 +40,8 @@ public class IptablesService {
         status.setEnabled(isFirewallEnabled());
 
         if (status.isEnabled()) {
-            Process process = Runtime.getRuntime().exec("iptables -L -n --line-numbers");
+//            Process process = Runtime.getRuntime().exec("iptables -L -n --line-numbers");
+            Process process = Runtime.getRuntime().exec("iptables -t filter -L -n --line-numbers");
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 String currentChain = null;
@@ -66,6 +67,7 @@ public class IptablesService {
                 status.setInputRules(inputRules);
                 status.setOutputRules(outputRules);
                 status.setForwardRules(forwardRules);
+                // 修改A5：总规则数量只统计filter表中的INPUT/OUTPUT/FORWARD链的规则
                 status.setTotalRules(inputRules + outputRules + forwardRules);
             }
         }
