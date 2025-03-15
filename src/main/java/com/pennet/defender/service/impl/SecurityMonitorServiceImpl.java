@@ -142,7 +142,7 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
     }
 
     @Override
-    public void stopHttpMonitoring() {
+    public void stopHttpMonitoring() throws IOException {
         if (httpMonitorRunning.compareAndSet(true, false)) {
             if (httpMonitorThread != null) {
                 httpMonitorThread.interrupt();
@@ -165,10 +165,6 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
         return httpMonitorRunning.get();
     }
 
-//    @Override
-//    public void saveAlert(SecurityAlert alert) {
-//        alertRepository.save(alert);
-//    }
     @Override
     public void saveAlert(SecurityAlert alert) {
         // 确保 detailInfo 不超过 255 个字符
@@ -237,18 +233,84 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
     }
 
     // TODO /tmp/mitmproxy_script.py 配置好等待测试
-//    private void startMitmProxy() throws IOException {
-//        // 启动mitmproxy代理服务器
-//        mitmProxyProcess = Runtime.getRuntime().exec("mitmdump -s /tmp/mitmproxy_script.py --set flow_detail=3");
-//        logger.info("已启动mitmproxy代理");
-//    }
+
     private void startMitmProxy() throws IOException {
         String mitmPath = "/usr/local/bin/mitmdump"; // 替换为你的实际路径
         mitmProxyProcess = Runtime.getRuntime().exec(mitmPath + " --mode regular@8082 -s /app/mitmproxy_script.py");
-        logger.info("已启动 mitmproxy 代理");
+        mitmProxyProcess = Runtime.getRuntime().exec("sudo cp ~/.mitmproxy/mitmproxy-ca-cert.pem /usr/local/share/ca-certificates/mitmproxy-ca-cert.crt");
+        mitmProxyProcess = Runtime.getRuntime().exec("sudo update-ca-certificates");
+        logger.info("已启动 mitmproxy , IP为本地地址 , 端口为8082");
+        mitmProxyProcess = Runtime.getRuntime().exec("echo \"export http_proxy=http://127.0.0.1:8082\" >> /root/.bashrc");
+        mitmProxyProcess = Runtime.getRuntime().exec("echo \"export https_proxy=http://127.0.0.1:8082\" >> /root/.bashrc");
+        mitmProxyProcess = Runtime.getRuntime().exec("echo \"export HTTP_PROXY=http://127.0.0.1:8082\" >> /root/.bashrc");
+        mitmProxyProcess = Runtime.getRuntime().exec("echo \"export HTTPS_PROXY=http://127.0.0.1:8082\" >> /root/.bashrc");
+//        mitmProxyProcess = Runtime.getRuntime().exec("source /root/.bashrc");
+        try {
+                // 使用 ProcessBuilder 执行 source ~/.bashrc 命令
+                ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", "source /root/.bashrc");
+                Process process = processBuilder.start();
+
+                // 获取输出
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+
+                // 等待命令执行完成
+                int exitCode = process.waitFor();
+                if (exitCode == 0) {
+                    logger.info("source ~/.bashrc 已成功加载！");
+                } else {
+                    logger.warn("source ~/.bashrc 执行失败！");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+        logger.info("已启动 mitmproxy 代理终端和 CLI 命令");
+        System.setProperty("http.proxyHost", "127.0.0.1");
+        System.setProperty("http.proxyPort", "8082");
+        System.setProperty("https.proxyHost", "127.0.0.1");
+        System.setProperty("https.proxyPort", "8082");
+        logger.info("已启动 mitmproxy 代理Java");
     }
 
-    private void stopMitmProxy() {
+    private void stopMitmProxy() throws IOException {
+        System.clearProperty("http.proxyHost");
+        System.clearProperty("http.proxyPort");
+        System.clearProperty("https.proxyHost");
+        System.clearProperty("https.proxyPort");
+        logger.info("已管理 mitmproxy 代理Java");
+        mitmProxyProcess = Runtime.getRuntime().exec("sed -i '/export http_proxy=http:\\/\\/127.0.0.1:8082/d' /root/.bashrc");
+        mitmProxyProcess = Runtime.getRuntime().exec("sed -i '/export https_proxy=http:\\/\\/127.0.0.1:8082/d' /root/.bashrc");
+        mitmProxyProcess = Runtime.getRuntime().exec("sed -i '/export HTTP_PROXY=http:\\/\\/127.0.0.1:8082/d' /root/.bashrc");
+        mitmProxyProcess = Runtime.getRuntime().exec("sed -i '/export HTTPS_PROXY=http:\\/\\/127.0.0.1:8082/d' /root/.bashrc");
+//        mitmProxyProcess = Runtime.getRuntime().exec("source /root/.bashrc");
+        try {
+            // 使用 ProcessBuilder 执行 source ~/.bashrc 命令
+            ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", "source /root/.bashrc");
+            Process process = processBuilder.start();
+
+            // 获取输出
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            // 等待命令执行完成
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                logger.info("source ~/.bashrc 已成功加载！");
+            } else {
+                logger.warn("source ~/.bashrc 执行失败！");
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        logger.info("已启动 mitmproxy 代理终端和 CLI 命令");
         if (mitmProxyProcess != null) {
             mitmProxyProcess.destroy();
             mitmProxyProcess = null;
@@ -261,7 +323,8 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
         try {
             // 监控mitmproxy的输出
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(mitmProxyProcess.getInputStream()))) {
-                String line;
+                String line = null;
+                System.out.println(line);
                 while (httpMonitorRunning.get() && (line = reader.readLine()) != null) {
                     processHttpTrafficLine(line);
                 }
@@ -305,7 +368,7 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
     }
 
     @PreDestroy
-    public void cleanup() {
+    public void cleanup() throws IOException {
         stopSshMonitoring();
         stopHttpMonitoring();
         executorService.shutdown();

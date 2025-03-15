@@ -41,7 +41,7 @@ public class IptablesService {
 
         if (status.isEnabled()) {
 //            Process process = Runtime.getRuntime().exec("iptables -L -n --line-numbers");
-            Process process = Runtime.getRuntime().exec("iptables -t filter -L -n --line-numbers");
+            Process process = Runtime.getRuntime().exec("iptables -t filter -L -n --line-numbers | grep -v \"DOCKER\"");
             try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 String currentChain = null;
@@ -102,8 +102,13 @@ public class IptablesService {
     public void addRule(FirewallRule rule) throws IOException {
         validateRule(rule);
 
-        StringBuilder command = new StringBuilder("iptables -A ");
+        StringBuilder command = new StringBuilder("iptables -I ");
         command.append(rule.getChain()).append(" ");
+        
+        // 添加优先级参数，如果有优先级则使用，否则添加到链的末尾
+        if (rule.getPriority() != null) {
+            command.append(rule.getPriority()).append(" ");
+        }
 
         if (rule.getProtocol() != null && !rule.getProtocol().isEmpty() && !rule.getProtocol().equalsIgnoreCase("all")) {
             command.append("-p ").append(rule.getProtocol()).append(" ");

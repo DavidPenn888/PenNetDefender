@@ -3,11 +3,13 @@ package com.pennet.defender.service;
 import com.pennet.defender.model.SecurityAlert;
 import org.springframework.data.domain.Page;
 
+import java.io.IOException;
+
 public interface SecurityMonitorService {
     void startSshMonitoring();
     void stopSshMonitoring();
     void startHttpMonitoring();
-    void stopHttpMonitoring();
+    void stopHttpMonitoring() throws IOException;
     boolean isSshMonitoringRunning();
     boolean isHttpMonitoringRunning();
     void saveAlert(SecurityAlert alert);

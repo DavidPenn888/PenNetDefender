@@ -100,6 +100,10 @@ public class FirewallManagementService {
             existingRule.setSource(rule.getSource());
             existingRule.setDestination(rule.getDestination());
             existingRule.setPort(rule.getPort());
+            // 更新优先级（如果前端提供了新的优先级）
+            if (rule.getPriority() != null) {
+                existingRule.setPriority(rule.getPriority());
+            }
             existingRule.setLastUpdated(LocalDateTime.now());
 
             // 保存到数据库
