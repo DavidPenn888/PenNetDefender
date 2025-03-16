@@ -29,25 +29,6 @@ public class FirewallManagementController {
         }
     }
 
-    @PostMapping("/enable")
-    public ResponseEntity<Map<String, Object>> enableFirewall() {
-        try {
-            firewallManagementService.enableFirewall();
-            return ResponseEntity.ok(Map.of("code", 0, "data", "Firewall enabled", "message", "success"));
-        } catch (IOException e) {
-            return ResponseEntity.ok(Map.of("code", -1, "data", new HashMap<>(), "message", e.getMessage()));
-        }
-    }
-
-    @PostMapping("/disable")
-    public ResponseEntity<Map<String, Object>> disableFirewall() {
-        try {
-            firewallManagementService.disableFirewall();
-            return ResponseEntity.ok(Map.of("code", 0, "data", "Firewall disabled", "message", "success"));
-        } catch (IOException e) {
-            return ResponseEntity.ok(Map.of("code", -1, "data", new HashMap<>(), "message", e.getMessage()));
-        }
-    }
 
     @GetMapping("/rules")
     public ResponseEntity<Map<String, Object>> listFirewallRules(

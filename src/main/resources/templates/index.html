@@ -531,18 +531,14 @@
                         <div>
                             <h3 style="margin: 0;">防火墙状态</h3>
                             <div style="margin-top: 10px;">
-                                <el-tag :type="firewallStatus.enabled ? 'success' : 'info'" size="medium">
-                                    {{ firewallStatus.enabled ? '已启用' : '已禁用' }}
+<!--                                <el-tag :type="firewallStatus.enabled ? 'success' : 'info'" size="medium">-->
+<!--                                    {{ firewallStatus.enabled ? '已启用' : '已禁用' }}-->
                                 </el-tag>
                                 <span style="margin-left: 15px;">总规则数: {{ firewallStatus.totalRules || 0 }}</span>
                                 <span style="margin-left: 15px;">输入规则: {{ firewallStatus.inputRules || 0 }}</span>
                                 <span style="margin-left: 15px;">输出规则: {{ firewallStatus.outputRules || 0 }}</span>
                                 <span style="margin-left: 15px;">转发规则: {{ firewallStatus.forwardRules || 0 }}</span>
                             </div>
-                        </div>
-                        <div>
-                            <el-button type="success" :disabled="firewallStatus.enabled" @click="toggleFirewall(true)">启用防火墙</el-button>
-                            <el-button type="danger" :disabled="!firewallStatus.enabled" @click="toggleFirewall(false)">禁用防火墙</el-button>
                         </div>
                     </div>
                 </div>
@@ -1073,7 +1069,7 @@
                     }
                     return this.firewallRules.content.filter(rule => rule.chain === chainType);
                 },
-                
+
                 handleSelect(key) {
                     this.currentPage = key;
                     if (key === '1-1') {
@@ -1166,7 +1162,7 @@
                     const cpuData = this.systemStatus.map(item => item.cpuUsage).reverse();
                     const memoryData = this.systemStatus.map(item => item.memoryUsage).reverse();
                     const storageData = this.systemStatus.map(item => item.storageUsage).reverse();
-                    
+
                     // 初始化CPU图表
                     const cpuChart = echarts.init(document.getElementById('cpuChart'));
                     cpuChart.setOption({
@@ -1213,7 +1209,7 @@
                             }
                         }]
                     });
-                    
+
                     // 初始化存储图表
                     const storageChart = echarts.init(document.getElementById('storageChart'));
                     storageChart.setOption({
@@ -1260,7 +1256,7 @@
                             }
                         }]
                     });
-                    
+
                     // 初始化内存图表
                     const memoryChart = echarts.init(document.getElementById('memoryChart'));
                     memoryChart.setOption({
@@ -1307,7 +1303,7 @@
                             }
                         }]
                     });
-                    
+
                     // 窗口大小变化时重新调整图表大小
                     window.addEventListener('resize', () => {
                         cpuChart.resize();
@@ -1333,7 +1329,7 @@
                         document.querySelector('.el-menu').setAttribute('default-active', '1-2');
                     });
                 },
-                
+
                 // 阈值告警查询页面方法
                 searchThresholdAlerts() {
                     this.loading = true;
@@ -1341,7 +1337,7 @@
                     if (this.thresholdQueryForm.alertType) {
                         url += `&alertType=${this.thresholdQueryForm.alertType}`;
                     }
-                    
+
                     axios.get(url)
                         .then(response => {
                             if (response.data.code === 0) {
@@ -1357,12 +1353,12 @@
                             this.loading = false;
                         });
                 },
-                
+
                 handleThresholdPageChange(page) {
                     this.thresholdQueryForm.page = page;
                     this.searchThresholdAlerts();
                 },
-                
+
                 goToThresholdManage() {
                     this.currentPage = '4-1';
                     // 更新左侧导航栏的选中状态
@@ -1370,7 +1366,7 @@
                         document.querySelector('.el-menu').setAttribute('default-active', '4-1');
                     });
                 },
-                
+
                 // 异常检测状态页面方法
                 fetchMonitorStatus() {
                     axios.get('/api/traffics/status')
@@ -1385,7 +1381,7 @@
                             this.$message.error('获取监控状态出错: ' + error.message);
                         });
                 },
-                
+
                 toggleSshMonitoring(status) {
                     const url = status ? '/api/traffics/ssh/enable' : '/api/traffics/ssh/disable';
                     axios.post(url)
@@ -1405,7 +1401,7 @@
                             this.monitorStatus.sshMonitoring = !status;
                         });
                 },
-                
+
                 toggleHttpMonitoring(status) {
                     const url = status ? '/api/traffics/http/enable' : '/api/traffics/http/disable';
                     axios.post(url)
@@ -1425,7 +1421,7 @@
                             this.monitorStatus.httpMonitoring = !status;
                         });
                 },
-                
+
                 // 异常检测告警页面方法
                 searchSecurityAlerts() {
                     this.loading = true;
@@ -1436,7 +1432,7 @@
                     if (this.securityQueryForm.alertType) {
                         url += `&alertType=${this.securityQueryForm.alertType}`;
                     }
-                    
+
                     axios.get(url)
                         .then(response => {
                             if (response.data.code === 0) {
@@ -1452,17 +1448,17 @@
                             this.loading = false;
                         });
                 },
-                
+
                 handleSecurityPageChange(page) {
                     this.securityQueryForm.page = page;
                     this.searchSecurityAlerts();
                 },
-                
+
                 // 服务管理页面方法
                 fetchAppServices() {
                     this.loading = true;
                     let url = `/api/appservice/list?page=${this.appServiceQueryForm.page}&size=${this.appServiceQueryForm.size}`;
-                    
+
                     axios.get(url)
                         .then(response => {
                             if (response.data.code === 0) {
@@ -1478,12 +1474,12 @@
                             this.loading = false;
                         });
                 },
-                
+
                 handleAppServicePageChange(page) {
                     this.appServiceQueryForm.page = page;
                     this.fetchAppServices();
                 },
-                
+
                 manageService(servicename, action) {
                     this.loading = true;
                     axios.post(`/api/appservice/action?action=${action}&servicename=${servicename}`)
@@ -1503,12 +1499,12 @@
                             this.loading = false;
                         });
                 },
-                
+
                 // 端口管理页面方法
                 fetchPortList() {
                     this.loading = true;
                     let url = `/api/port/list?page=${this.portQueryForm.page}&size=${this.portQueryForm.size}`;
-                    
+
                     axios.get(url)
                         .then(response => {
                             if (response.data.code === 0) {
@@ -1524,16 +1520,16 @@
                             this.loading = false;
                         });
                 },
-                
+
                 handlePortPageChange(page) {
                     this.portQueryForm.page = page;
                     this.fetchPortList();
                 },
-                
+
                 killPort(pid, force) {
                     const url = force ? '/api/port/forcekill' : '/api/port/kill';
                     this.loading = true;
-                    
+
                     axios.post(`${url}?pid=${pid}`)
                         .then(response => {
                             if (response.data.code === 0) {
@@ -1551,7 +1547,7 @@
                             this.loading = false;
                         });
                 },
-                
+
                 // 防火墙管理页面方法
                 fetchFirewallStatus() {
                     axios.get('/api/firewall/status')
@@ -1566,11 +1562,11 @@
                             this.$message.error('获取防火墙状态出错: ' + error.message);
                         });
                 },
-                
+
                 fetchFirewallRules() {
                     this.loading = true;
                     let url = `/api/firewall/rules?page=${this.firewallRuleQueryForm.page}&size=${this.firewallRuleQueryForm.size}`;
-                    
+
                     axios.get(url)
                         .then(response => {
                             if (response.data.code === 0) {
@@ -1586,37 +1582,15 @@
                             this.loading = false;
                         });
                 },
-                
+
                 handleFirewallRulePageChange(page) {
                     this.firewallRuleQueryForm.page = page;
                     this.fetchFirewallRules();
                 },
-                
-                toggleFirewall(enable) {
-                    const url = enable ? '/api/firewall/enable' : '/api/firewall/disable';
-                    this.loading = true;
-                    
-                    axios.post(url)
-                        .then(response => {
-                            if (response.data.code === 0) {
-                                this.$message.success(response.data.data);
-                                // 刷新防火墙状态
-                                this.fetchFirewallStatus();
-                            } else {
-                                this.$message.error('操作失败: ' + response.data.message);
-                            }
-                        })
-                        .catch(error => {
-                            this.$message.error('操作出错: ' + error.message);
-                        })
-                        .finally(() => {
-                            this.loading = false;
-                        });
-                },
-                
+
                 openFirewallRuleDialog(type, row) {
                     this.dialogType = type;
-                    
+
                     if (type === 'add') {
                         this.dialogTitle = '添加防火墙规则';
                         this.firewallRuleForm = {
@@ -1638,12 +1612,12 @@
                         }
                     } else if (type === 'delete') {
                         this.dialogTitle = '删除防火墙规则';
-                        this.firewallRuleForm = { id: row.id };
+                        this.firewallRuleForm = {id: row.id};
                     }
-                    
+
                     this.firewallRuleDialogVisible = true;
                 },
-                
+
                 submitFirewallRule() {
                     if (this.dialogType === 'add') {
                         // 添加规则
@@ -1692,7 +1666,7 @@
                             });
                     }
                 },
-                
+
                 // 阈值管理页面方法
                 fetchThresholdSettings() {
                     this.loading = true;
@@ -1712,7 +1686,7 @@
                             this.loading = false;
                         });
                 },
-                
+
                 updateThreshold() {
                     this.loading = true;
                     axios.post('/api/system/change_threshold', this.thresholdForm)
@@ -1730,7 +1704,7 @@
                             this.loading = false;
                         });
                 },
-                
+
                 // WebHook配置页面方法
                 fetchWebhookSettings() {
                     this.loading = true;
@@ -1750,7 +1724,7 @@
                             this.loading = false;
                         });
                 },
-                
+
                 updateWebhook() {
                     this.loading = true;
                     axios.post('/api/server/change_webhook', this.webhookForm)
@@ -1768,12 +1742,12 @@
                             this.loading = false;
                         });
                 },
-                
+
                 // 管理员密码修改页面方法
                 resetPasswordForm() {
                     this.$refs.passwordForm.resetFields();
                 },
-                
+
                 changePassword() {
                     this.$refs.passwordForm.validate(valid => {
                         if (valid) {
@@ -1781,13 +1755,13 @@
                                 this.$message.error('两次输入的密码不一致');
                                 return;
                             }
-                            
+
                             this.loading = true;
                             const params = new URLSearchParams();
                             params.append('username', this.passwordForm.username);
                             params.append('oldPassword', this.passwordForm.oldPassword);
                             params.append('newPassword', this.passwordForm.newPassword);
-                            
+
                             axios.post('/api/server/changepsw', params)
                                 .then(response => {
                                     if (response.data.code === 0) {

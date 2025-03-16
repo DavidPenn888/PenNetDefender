@@ -2,6 +2,7 @@ package com.pennet.defender.controller;
 
 import com.pennet.defender.model.ApiResponse;
 import com.pennet.defender.service.SystemMonitorService;
+import com.pennet.defender.service.SystemConfigService;
 import com.pennet.defender.model.SystemStatus;
 import com.pennet.defender.model.ThresholdAlert;
 import com.pennet.defender.config.ThresholdConfig;
@@ -21,6 +22,9 @@ public class SystemMonitorController {
 
     @Autowired
     private ThresholdConfig thresholdConfig;
+    
+    @Autowired
+    private SystemConfigService systemConfigService;
 
 @GetMapping("/status")
 public ApiResponse<List<SystemStatus>> getStatus(@RequestParam String timeline) {
@@ -38,10 +42,13 @@ public ApiResponse<List<SystemStatus>> getStatus(@RequestParam String timeline) 
 
     @PostMapping("/change_threshold")
     public ApiResponse<Void> changeThreshold(@RequestBody ThresholdConfig newThresholdConfig) {
-        thresholdConfig.setCpuThreshold(newThresholdConfig.getCpuThreshold());
-        thresholdConfig.setMemoryThreshold(newThresholdConfig.getMemoryThreshold());
-        thresholdConfig.setStorageThreshold(newThresholdConfig.getStorageThreshold());
-        return new ApiResponse<>(0, null, "Threshold updated successfully");
+        // 使用SystemConfigService更新阈值配置，确保持久化保存
+        systemConfigService.updateThresholdConfig(
+            newThresholdConfig.getCpuThreshold(),
+            newThresholdConfig.getMemoryThreshold(),
+            newThresholdConfig.getStorageThreshold()
+        );
+        return new ApiResponse<>(0, null, "Threshold updated successfully and persisted");
     }
 
     @GetMapping("/threshold_alert")

@@ -34,21 +34,7 @@ public class FirewallManagementService {
         return iptablesService.getFirewallStatus();
     }
 
-    /**
-     * 启用防火墙
-     */
-    public void enableFirewall() throws IOException {
-        iptablesService.enableFirewall();
-        // 应用数据库中的规则
-        applyRulesFromDatabase();
-    }
-
-    /**
-     * 禁用防火墙
-     */
-    public void disableFirewall() throws IOException {
-        iptablesService.disableFirewall();
-    }
+    // 防火墙启用和禁用功能已被移除
 
     /**
      * 获取防火墙规则（分页）
@@ -157,9 +143,18 @@ public class FirewallManagementService {
     /**
      * 应用数据库中的规则到iptables
      */
-    private void applyRulesFromDatabase() throws IOException {
-        // 清除现有规则
-        iptablesService.disableFirewall();
+    private void applyRulesFromDatabase() throws IOException, InterruptedException {
+        // 清除现有规则 - 使用直接执行iptables命令的方式替代disableFirewall()
+        // 清空所有规则
+        Process process1 = Runtime.getRuntime().exec("iptables -F");
+        process1.waitFor();
+        // 设置默认策略为ACCEPT
+        Process process2 = Runtime.getRuntime().exec("iptables -P INPUT ACCEPT");
+        process2.waitFor();
+        Process process3 = Runtime.getRuntime().exec("iptables -P OUTPUT ACCEPT");
+        process3.waitFor();
+        Process process4 = Runtime.getRuntime().exec("iptables -P FORWARD ACCEPT");
+        process4.waitFor();
 
         // 获取数据库中的所有规则
         List<FirewallRule> rules = firewallRuleRepository.findAll();

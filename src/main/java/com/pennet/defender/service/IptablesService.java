@@ -2,8 +2,10 @@ package com.pennet.defender.service;
 
 import com.pennet.defender.model.FirewallRule;
 import com.pennet.defender.model.FirewallStatus;
+import com.pennet.defender.repository.FirewallRuleRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -16,6 +18,8 @@ import java.util.regex.Pattern;
 
 @Service
 public class IptablesService {
+    @Autowired
+    private FirewallRuleRepository firewallRuleRepository;
     private static final Logger logger = LoggerFactory.getLogger(IptablesService.class);
 
     private static final String[] VALID_CHAINS = {"INPUT", "OUTPUT", "FORWARD"};
@@ -34,67 +38,30 @@ public class IptablesService {
 
     /**
      * 获取防火墙状态
+     * 从数据库中统计防火墙规则数量，而不是从iptables命令输出中统计
      */
     public FirewallStatus getFirewallStatus() throws IOException {
         FirewallStatus status = new FirewallStatus();
         status.setEnabled(isFirewallEnabled());
 
         if (status.isEnabled()) {
-//            Process process = Runtime.getRuntime().exec("iptables -L -n --line-numbers");
-            Process process = Runtime.getRuntime().exec("iptables -t filter -L -n --line-numbers | grep -v \"DOCKER\"");
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-                String line;
-                String currentChain = null;
-                int inputRules = 0, outputRules = 0, forwardRules = 0;
-
-                while ((line = reader.readLine()) != null) {
-                    if (line.startsWith("Chain INPUT")) {
-                        currentChain = "INPUT";
-                    } else if (line.startsWith("Chain OUTPUT")) {
-                        currentChain = "OUTPUT";
-                    } else if (line.startsWith("Chain FORWARD")) {
-                        currentChain = "FORWARD";
-                    } else if (line.matches("^\\d+.*") && currentChain != null) {
-                        // 计数规则行
-                        switch (currentChain) {
-                            case "INPUT": inputRules++; break;
-                            case "OUTPUT": outputRules++; break;
-                            case "FORWARD": forwardRules++; break;
-                        }
-                    }
-                }
-
-                status.setInputRules(inputRules);
-                status.setOutputRules(outputRules);
-                status.setForwardRules(forwardRules);
-                // 修改A5：总规则数量只统计filter表中的INPUT/OUTPUT/FORWARD链的规则
-                status.setTotalRules(inputRules + outputRules + forwardRules);
-            }
+            // 从数据库中获取各个链的规则数量
+            int inputRules = firewallRuleRepository.findByChainOrderByPriorityAsc("INPUT").size();
+            int outputRules = firewallRuleRepository.findByChainOrderByPriorityAsc("OUTPUT").size();
+            int forwardRules = firewallRuleRepository.findByChainOrderByPriorityAsc("FORWARD").size();
+            
+            status.setInputRules(inputRules);
+            status.setOutputRules(outputRules);
+            status.setForwardRules(forwardRules);
+            status.setTotalRules(inputRules + outputRules + forwardRules);
+            
+            logger.info("防火墙状态: 输入规则={}, 输出规则={}, 转发规则={}, 总规则数={}", 
+                    inputRules, outputRules, forwardRules, (inputRules + outputRules + forwardRules));
         }
 
         return status;
     }
 
-    /**
-     * 启用防火墙
-     */
-    public void enableFirewall() throws IOException {
-        executeCommand("iptables -P INPUT ACCEPT");
-        executeCommand("iptables -P OUTPUT ACCEPT");
-        executeCommand("iptables -P FORWARD ACCEPT");
-    }
-
-    /**
-     * 禁用防火墙
-     */
-    public void disableFirewall() throws IOException {
-        // 清除所有规则
-        executeCommand("iptables -F");
-        // 设置默认策略为ACCEPT
-        executeCommand("iptables -P INPUT ACCEPT");
-        executeCommand("iptables -P OUTPUT ACCEPT");
-        executeCommand("iptables -P FORWARD ACCEPT");
-    }
 
     /**
      * 添加防火墙规则
