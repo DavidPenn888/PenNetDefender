@@ -10,4 +10,5 @@ import org.springframework.stereotype.Repository;
 public interface ServiceRepository extends JpaRepository<AppService, Integer> {
     Page<AppService> findAllByOrderByNameAsc(Pageable pageable);
     AppService findByName(String name);
+    Page<AppService> findByNameContainingIgnoreCase(String name, Pageable pageable);
 }

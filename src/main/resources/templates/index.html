@@ -374,6 +374,17 @@
                 <h2>服务管理</h2>
                 
                 <div class="alert-table">
+                    <!-- 筛选条件 -->
+                    <div style="margin-bottom: 20px;">
+                        <el-form :inline="true" :model="appServiceQueryForm" class="demo-form-inline">
+                            <el-form-item label="服务名称">
+                                <el-input v-model="appServiceQueryForm.name" placeholder="输入服务名称"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="fetchAppServices">查询</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
                     <!-- 服务列表表格 -->
                     <el-table
                         :data="appServices.content"
@@ -449,6 +460,24 @@
                 <h2>端口管理</h2>
                 
                 <div class="alert-table">
+                    <!-- 筛选条件 -->
+                    <div style="margin-bottom: 20px;">
+                        <el-form :inline="true" :model="portQueryForm" class="demo-form-inline">
+                            <el-form-item label="查询类型">
+                                <el-select v-model="portQueryForm.queryType" placeholder="选择查询类型">
+                                    <el-option label="端口号" value="portNumber"></el-option>
+                                    <el-option label="进程ID" value="processId"></el-option>
+                                    <el-option label="子进程ID" value="childProcessId"></el-option>
+                                </el-select>
+                            </el-form-item>
+                            <el-form-item label="查询值">
+                                <el-input v-model="portQueryForm.queryValue" placeholder="输入查询值"></el-input>
+                            </el-form-item>
+                            <el-form-item>
+                                <el-button type="primary" @click="fetchPortList">查询</el-button>
+                            </el-form-item>
+                        </el-form>
+                    </div>
                     <!-- 端口列表表格 -->
                     <el-table
                         :data="portList.content"
@@ -989,7 +1018,8 @@
                     // 服务管理页面数据
                     appServiceQueryForm: {
                         page: 1,
-                        size: 30
+                        size: 30,
+                        name: '' // 添加服务名称查询字段
                     },
                     appServices: {
                         content: [],
@@ -999,7 +1029,9 @@
                     // 端口管理页面数据
                     portQueryForm: {
                         page: 1,
-                        size: 30
+                        size: 30,
+                        queryType: 'portNumber', // 默认查询类型为端口号
+                        queryValue: '' // 查询值
                     },
                     portList: {
                         content: [],
@@ -1458,6 +1490,11 @@
                 fetchAppServices() {
                     this.loading = true;
                     let url = `/api/appservice/list?page=${this.appServiceQueryForm.page}&size=${this.appServiceQueryForm.size}`;
+                    
+                    // 添加服务名称查询参数
+                    if (this.appServiceQueryForm.name && this.appServiceQueryForm.name.trim() !== '') {
+                        url += `&name=${encodeURIComponent(this.appServiceQueryForm.name)}`;
+                    }
 
                     axios.get(url)
                         .then(response => {
@@ -1504,6 +1541,11 @@
                 fetchPortList() {
                     this.loading = true;
                     let url = `/api/port/list?page=${this.portQueryForm.page}&size=${this.portQueryForm.size}`;
+                    
+                    // 添加查询类型和查询值参数
+                    if (this.portQueryForm.queryType && this.portQueryForm.queryValue && this.portQueryForm.queryValue.trim() !== '') {
+                        url += `&queryType=${this.portQueryForm.queryType}&queryValue=${encodeURIComponent(this.portQueryForm.queryValue)}`;
+                    }
 
                     axios.get(url)
                         .then(response => {
@@ -1627,6 +1669,7 @@
                                     this.$message.success('防火墙规则添加成功');
                                     this.firewallRuleDialogVisible = false;
                                     this.fetchFirewallRules();
+                                    this.fetchFirewallStatus(); // 同时刷新防火墙状态
                                 } else {
                                     this.$message.error('添加失败: ' + response.data.message);
                                 }
@@ -1642,6 +1685,7 @@
                                     this.$message.success('防火墙规则更新成功');
                                     this.firewallRuleDialogVisible = false;
                                     this.fetchFirewallRules();
+                                    this.fetchFirewallStatus(); // 同时刷新防火墙状态
                                 } else {
                                     this.$message.error('更新失败: ' + response.data.message);
                                 }
@@ -1657,6 +1701,7 @@
                                     this.$message.success('防火墙规则删除成功');
                                     this.firewallRuleDialogVisible = false;
                                     this.fetchFirewallRules();
+                                    this.fetchFirewallStatus(); // 同时刷新防火墙状态
                                 } else {
                                     this.$message.error('删除失败: ' + response.data.message);
                                 }

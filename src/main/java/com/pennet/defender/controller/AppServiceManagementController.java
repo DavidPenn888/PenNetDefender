@@ -18,10 +18,20 @@ public class AppServiceManagementController {
 
     @GetMapping("/list")
     public Map<String, Object> listServices(@RequestParam(defaultValue = "1") int page,
-                                            @RequestParam(defaultValue = "30") int size) {
+                                            @RequestParam(defaultValue = "30") int size,
+                                            @RequestParam(required = false) String name) {
         try {
             serviceManagementService.refreshServices();
-            Page<AppService> appservices = serviceManagementService.getServices(page, size);
+            Page<AppService> appservices;
+            
+            if (name != null && !name.trim().isEmpty()) {
+                // 如果提供了服务名称，则按名称查询
+                appservices = serviceManagementService.searchServicesByName(name, page, size);
+            } else {
+                // 否则获取所有服务
+                appservices = serviceManagementService.getServices(page, size);
+            }
+            
             return Map.of("code", 0, "data", Map.of(
                     "totalPages", appservices.getTotalPages(),
                     "totalElements", appservices.getTotalElements(),

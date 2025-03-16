@@ -19,9 +19,39 @@ public class PortQueryController {
 
     @GetMapping("/list")
     public ApiResponse<Map<String, Object>> listPorts(@RequestParam(defaultValue = "1") int page,
-                                                      @RequestParam(defaultValue = "30") int size) throws IOException {
+                                                      @RequestParam(defaultValue = "30") int size,
+                                                      @RequestParam(required = false) String queryType,
+                                                      @RequestParam(required = false) String queryValue) throws IOException {
         portQueryService.refreshPorts();
-        Page<Port> ports = portQueryService.getPorts(page, size);
+        Page<Port> ports;
+        
+        if (queryType != null && queryValue != null && !queryValue.trim().isEmpty()) {
+            switch (queryType) {
+                case "portNumber":
+                    try {
+                        Integer portNumber = Integer.parseInt(queryValue);
+                        ports = portQueryService.getPortsByPortNumber(portNumber, page, size);
+                    } catch (NumberFormatException e) {
+                        return new ApiResponse<>(-1, null, "端口号必须是数字");
+                    }
+                    break;
+                case "processId":
+                    try {
+                        Integer processId = Integer.parseInt(queryValue);
+                        ports = portQueryService.getPortsByProcessId(processId, page, size);
+                    } catch (NumberFormatException e) {
+                        return new ApiResponse<>(-1, null, "进程ID必须是数字");
+                    }
+                    break;
+                case "childProcessId":
+                    ports = portQueryService.getPortsByChildProcessId(queryValue, page, size);
+                    break;
+                default:
+                    ports = portQueryService.getPorts(page, size);
+            }
+        } else {
+            ports = portQueryService.getPorts(page, size);
+        }
 
         Map<String, Object> data = Map.of(
                 "totalPages", ports.getTotalPages(),
@@ -31,36 +61,6 @@ public class PortQueryController {
 
         return new ApiResponse<>(0, data, "success");
     }
-
-//    // POST /kill to terminate the process normally
-//    @PostMapping("/kill")
-//    public ApiResponse<String> killProcess(@RequestParam int pid) {
-//        try {
-//            // Execute the kill command for the given PID
-//            String command = "kill " + pid;
-//            Process process = Runtime.getRuntime().exec(command);
-//            process.waitFor();  // Wait for the command to finish
-//
-//            return new ApiResponse<>(0, "Process with PID " + pid + " has been terminated", "success");
-//        } catch (IOException | InterruptedException e) {
-//            return new ApiResponse<>(-1, e.getMessage(), "error");
-//        }
-//    }
-//
-//    // POST /forcekill to forcefully terminate the process using kill -9
-//    @PostMapping("/forcekill")
-//    public ApiResponse<String> forceKillProcess(@RequestParam int pid) {
-//        try {
-//            // Execute the kill -9 command for the given PID
-//            String command = "kill -9 " + pid;
-//            Process process = Runtime.getRuntime().exec(command);
-//            process.waitFor();  // Wait for the command to finish
-//
-//            return new ApiResponse<>(0, "Process with PID " + pid + " has been forcefully terminated", "success");
-//        } catch (IOException | InterruptedException e) {
-//            return new ApiResponse<>(-1, e.getMessage(), "error");
-//        }
-//    }
 
     // POST /kill to terminate the process normally
     @PostMapping("/kill")

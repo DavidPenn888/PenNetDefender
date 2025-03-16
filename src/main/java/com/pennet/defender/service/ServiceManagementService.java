@@ -25,6 +25,11 @@ public class ServiceManagementService {
         Pageable pageable = PageRequest.of(page - 1, size);
         return serviceRepository.findAllByOrderByNameAsc(pageable);
     }
+    
+    public Page<AppService> searchServicesByName(String name, int page, int size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        return serviceRepository.findByNameContainingIgnoreCase(name, pageable);
+    }
 
     public void refreshServices() throws IOException {
         List<AppService> appServices = new ArrayList<>();

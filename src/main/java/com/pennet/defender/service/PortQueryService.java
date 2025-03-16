@@ -27,6 +27,24 @@ public class PortQueryService {
         Pageable pageable = PageRequest.of(page - 1, size);
         return portRepository.findAllByOrderByProcessNameAsc(pageable);
     }
+    
+    // 按端口号查询
+    public Page<Port> getPortsByPortNumber(Integer portNumber, int page, int size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        return portRepository.findByPortNumber(portNumber, pageable);
+    }
+    
+    // 按进程ID查询
+    public Page<Port> getPortsByProcessId(Integer processId, int page, int size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        return portRepository.findByProcessId(processId, pageable);
+    }
+    
+    // 按子进程ID查询
+    public Page<Port> getPortsByChildProcessId(String childProcessId, int page, int size) {
+        Pageable pageable = PageRequest.of(page - 1, size);
+        return portRepository.findByChildProcessIdContaining(childProcessId, pageable);
+    }
 
     // 获取进程的子进程ID列表
     private String getChildProcessIds(int pid) {
