@@ -118,6 +118,7 @@ public class SecurityConfig {
                 .csrf().disable() // 关闭 CSRF 保护（REST API 一般关闭，Web 应用建议开启）
                 .authorizeHttpRequests(auth -> auth
                         .antMatchers("/", "/login", "/css/**", "/js/**").permitAll() // 允许所有用户访问登录页面及静态资源
+                        .antMatchers("/api/security/http_alert").permitAll() // 允许外部访问HTTP告警接口
 //                        .antMatchers("/api/server/changepsw").authenticated() // 修改密码接口需要登录
                         .antMatchers("/dashboard", "/api/**" ).hasRole("ADMIN") // 只有管理员才能访问 /api 下的接口
                         .anyRequest().authenticated() // 其他所有请求需要认证

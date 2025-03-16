@@ -2,6 +2,7 @@ package com.pennet.defender.service.impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.pennet.defender.config.ProxyConfig;
 import com.pennet.defender.config.SecurityMonitorConfig;
 import com.pennet.defender.config.WebHookConfig;
 import com.pennet.defender.model.SecurityAlert;
@@ -53,7 +54,9 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
 
     @Autowired
     private WebHookConfig webHookConfig;
-
+    
+    @Autowired
+    private ProxyConfig proxyConfig;
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -232,109 +235,144 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
         }
     }
 
-    // TODO /tmp/mitmproxy_script.py 配置好等待测试
-
     private void startMitmProxy() throws IOException {
-        String mitmPath = "/usr/local/bin/mitmdump"; // 替换为你的实际路径
-        mitmProxyProcess = Runtime.getRuntime().exec(mitmPath + " --mode regular@8082 -s /app/mitmproxy_script.py");
-        mitmProxyProcess = Runtime.getRuntime().exec("sudo cp ~/.mitmproxy/mitmproxy-ca-cert.pem /usr/local/share/ca-certificates/mitmproxy-ca-cert.crt");
-        mitmProxyProcess = Runtime.getRuntime().exec("sudo update-ca-certificates");
-        logger.info("已启动 mitmproxy , IP为本地地址 , 端口为8082");
-        mitmProxyProcess = Runtime.getRuntime().exec("echo \"export http_proxy=http://127.0.0.1:8082\" >> /root/.bashrc");
-        mitmProxyProcess = Runtime.getRuntime().exec("echo \"export https_proxy=http://127.0.0.1:8082\" >> /root/.bashrc");
-        mitmProxyProcess = Runtime.getRuntime().exec("echo \"export HTTP_PROXY=http://127.0.0.1:8082\" >> /root/.bashrc");
-        mitmProxyProcess = Runtime.getRuntime().exec("echo \"export HTTPS_PROXY=http://127.0.0.1:8082\" >> /root/.bashrc");
-//        mitmProxyProcess = Runtime.getRuntime().exec("source /root/.bashrc");
         try {
-                // 使用 ProcessBuilder 执行 source ~/.bashrc 命令
-                ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", "source /root/.bashrc");
-                Process process = processBuilder.start();
-
-                // 获取输出
-                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    System.out.println(line);
-                }
-
-                // 等待命令执行完成
-                int exitCode = process.waitFor();
-                if (exitCode == 0) {
-                    logger.info("source ~/.bashrc 已成功加载！");
-                } else {
-                    logger.warn("source ~/.bashrc 执行失败！");
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+            // 检查代理是否启用
+            if (!proxyConfig.isProxyEnabled()) {
+                logger.info("代理未启用，跳过mitmproxy启动");
+                return;
             }
-
-        logger.info("已启动 mitmproxy 代理终端和 CLI 命令");
-        System.setProperty("http.proxyHost", "127.0.0.1");
-        System.setProperty("http.proxyPort", "8082");
-        System.setProperty("https.proxyHost", "127.0.0.1");
-        System.setProperty("https.proxyPort", "8082");
-        logger.info("已启动 mitmproxy 代理Java");
+            
+            // 创建临时文件来存储脚本内容
+            File tempScriptFile = File.createTempFile("mitmproxy_script", ".py");
+            tempScriptFile.deleteOnExit(); // 确保JVM退出时删除临时文件
+            
+            // 从类路径资源中读取脚本内容并写入临时文件
+            try (InputStream inputStream = new ClassPathResource("scripts/mitmproxy_script.py").getInputStream();
+                 OutputStream outputStream = new FileOutputStream(tempScriptFile)) {
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+            }
+            
+            String scriptPath = tempScriptFile.getAbsolutePath();
+            logger.info("mitmproxy脚本临时路径: {}", scriptPath);
+            
+            // 从配置中获取代理主机和端口
+            String proxyHost = proxyConfig.getProxyHost();
+            int proxyPort = proxyConfig.getProxyPort();
+            
+            // 启动mitmproxy代理
+            String mitmPath = "mitmdump"; // 使用系统PATH中的mitmdump命令
+            String[] command = {mitmPath, "--mode", "regular@" + proxyPort, "-s", scriptPath};
+            
+            ProcessBuilder processBuilder = new ProcessBuilder(command);
+            processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
+            mitmProxyProcess = processBuilder.start();
+            
+            // 启动一个线程来读取mitmproxy的输出
+            new Thread(() -> {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(mitmProxyProcess.getInputStream()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        logger.info("mitmproxy: {}", line);
+                    }
+                } catch (IOException e) {
+                    logger.error("读取mitmproxy输出失败", e);
+                }
+            }).start();
+            
+            logger.info("已启动mitmproxy代理，监听地址{}:{}", proxyHost, proxyPort);
+            
+            // 设置Java系统代理
+            System.setProperty("http.proxyHost", proxyHost);
+            System.setProperty("http.proxyPort", String.valueOf(proxyPort));
+            System.setProperty("https.proxyHost", proxyHost);
+            System.setProperty("https.proxyPort", String.valueOf(proxyPort));
+            logger.info("已设置Java系统代理");
+            
+            // 如果配置了系统级代理，则设置系统级CLI和Bash代理
+            if (proxyConfig.isSystemWideProxy()) {
+                setupSystemWideProxy();
+                logger.info("已设置系统级CLI和Bash代理");
+            }
+        } catch (Exception e) {
+            logger.error("启动mitmproxy失败", e);
+            throw new IOException("启动mitmproxy失败: " + e.getMessage(), e);
+        }
     }
 
     private void stopMitmProxy() throws IOException {
-        System.clearProperty("http.proxyHost");
-        System.clearProperty("http.proxyPort");
-        System.clearProperty("https.proxyHost");
-        System.clearProperty("https.proxyPort");
-        logger.info("已管理 mitmproxy 代理Java");
-        mitmProxyProcess = Runtime.getRuntime().exec("sed -i '/export http_proxy=http:\\/\\/127.0.0.1:8082/d' /root/.bashrc");
-        mitmProxyProcess = Runtime.getRuntime().exec("sed -i '/export https_proxy=http:\\/\\/127.0.0.1:8082/d' /root/.bashrc");
-        mitmProxyProcess = Runtime.getRuntime().exec("sed -i '/export HTTP_PROXY=http:\\/\\/127.0.0.1:8082/d' /root/.bashrc");
-        mitmProxyProcess = Runtime.getRuntime().exec("sed -i '/export HTTPS_PROXY=http:\\/\\/127.0.0.1:8082/d' /root/.bashrc");
-//        mitmProxyProcess = Runtime.getRuntime().exec("source /root/.bashrc");
         try {
-            // 使用 ProcessBuilder 执行 source ~/.bashrc 命令
-            ProcessBuilder processBuilder = new ProcessBuilder("bash", "-c", "source /root/.bashrc");
-            Process process = processBuilder.start();
-
-            // 获取输出
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
-            }
-
-            // 等待命令执行完成
-            int exitCode = process.waitFor();
-            if (exitCode == 0) {
-                logger.info("source ~/.bashrc 已成功加载！");
-            } else {
-                logger.warn("source ~/.bashrc 执行失败！");
+            // 清除Java系统代理设置
+            System.clearProperty("http.proxyHost");
+            System.clearProperty("http.proxyPort");
+            System.clearProperty("https.proxyHost");
+            System.clearProperty("https.proxyPort");
+            logger.info("已清除Java系统代理设置");
+            
+            // 清除系统级CLI和Bash代理设置
+            cleanupSystemWideProxy();
+            logger.info("已清除系统级CLI和Bash代理");
+            
+            // 停止mitmproxy进程
+            if (mitmProxyProcess != null) {
+                mitmProxyProcess.destroy();
+                
+                // 等待进程完全终止
+                try {
+                    boolean terminated = mitmProxyProcess.waitFor(5, java.util.concurrent.TimeUnit.SECONDS);
+                    if (!terminated) {
+                        // 如果进程没有在5秒内终止，强制终止
+                        mitmProxyProcess.destroyForcibly();
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    logger.warn("等待mitmproxy进程终止时被中断", e);
+                }
+                
+                mitmProxyProcess = null;
+                logger.info("已停止mitmproxy代理");
             }
         } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        logger.info("已启动 mitmproxy 代理终端和 CLI 命令");
-        if (mitmProxyProcess != null) {
-            mitmProxyProcess.destroy();
-            mitmProxyProcess = null;
-            logger.info("已停止mitmproxy代理");
+            logger.error("停止mitmproxy失败", e);
+            throw new IOException("停止mitmproxy失败: " + e.getMessage(), e);
         }
     }
 
     @Async
     protected void monitorHttpTraffic() {
+        // 此方法现在只是一个占位符，实际的HTTP流量监控由mitmproxy脚本处理
+        // mitmproxy脚本会直接调用SecurityAlertController的API发送告警
         try {
-            // 监控mitmproxy的输出
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(mitmProxyProcess.getInputStream()))) {
-                String line = null;
-                System.out.println(line);
-                while (httpMonitorRunning.get() && (line = reader.readLine()) != null) {
-                    processHttpTrafficLine(line);
+            while (httpMonitorRunning.get()) {
+                // 每10秒检查一次运行状态
+                Thread.sleep(10000);
+                if (mitmProxyProcess != null && !mitmProxyProcess.isAlive()) {
+                    logger.error("mitmproxy进程已终止，尝试重新启动");
+                    // 尝试重新启动mitmproxy
+                    try {
+                        startMitmProxy();
+                    } catch (IOException e) {
+                        logger.error("重新启动mitmproxy失败", e);
+                        // 如果重启失败，停止监控
+                        httpMonitorRunning.set(false);
+                    }
                 }
             }
-        } catch (IOException e) {
-            logger.error("监控HTTP流量失败", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.info("HTTP监控线程被中断");
         }
     }
 
     private void processHttpTrafficLine(String trafficLine) {
+        // 此方法保留用于处理可能的直接HTTP流量数据
+        // 大部分HTTP流量监控现在由mitmproxy脚本处理并直接调用API
+        logger.debug("处理HTTP流量数据: {}", trafficLine);
+        
         for (SecurityRule rule : httpRules) {
             if (rule.matches(trafficLine)) {
                 // 提取用户和IP信息
@@ -372,6 +410,77 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
         stopSshMonitoring();
         stopHttpMonitoring();
         executorService.shutdown();
+    }
+    
+    /**
+     * 设置系统级CLI和Bash代理
+     * 通过创建/etc/profile.d/http_proxy.sh脚本设置环境变量
+     */
+    private void setupSystemWideProxy() {
+        try {
+            // 从配置中获取代理主机和端口
+            String proxyHost = proxyConfig.getProxyHost();
+            int proxyPort = proxyConfig.getProxyPort();
+            String proxyUrl = proxyConfig.getProxyUrl();
+            
+            // 创建代理配置脚本内容
+            String proxyScript = "#!/bin/bash\n" +
+                    "# 由PenNetDefender自动生成的代理配置\n" +
+                    "export HTTP_PROXY=\"" + proxyUrl + "\"\n" +
+                    "export HTTPS_PROXY=\"" + proxyUrl + "\"\n" +
+                    "export http_proxy=\"" + proxyUrl + "\"\n" +
+                    "export https_proxy=\"" + proxyUrl + "\"\n" +
+                    "export NO_PROXY=\"localhost,127.0.0.1,::1\"\n" +
+                    "export no_proxy=\"localhost,127.0.0.1,::1\"\n";
+            
+            // 使用sudo命令创建脚本文件
+            Process process = Runtime.getRuntime().exec(new String[]{"sudo", "bash", "-c", "cat > /etc/profile.d/http_proxy.sh << 'EOL'\n" + proxyScript + "EOL\n"});
+            int exitCode = process.waitFor();
+            
+            if (exitCode == 0) {
+                // 设置脚本权限
+                Process chmodProcess = Runtime.getRuntime().exec(new String[]{"sudo", "chmod", "755", "/etc/profile.d/http_proxy.sh"});
+                chmodProcess.waitFor();
+                
+                logger.info("系统级CLI和Bash代理配置已创建");
+                
+                // 通知用户需要重新登录或重新加载配置文件以使代理生效
+                logger.info("注意：新的终端会话将自动应用代理设置，现有会话需要执行 'source /etc/profile.d/http_proxy.sh' 使代理生效");
+            } else {
+                logger.error("创建系统级代理配置失败，退出码: {}", exitCode);
+            }
+        } catch (IOException | InterruptedException e) {
+            logger.error("设置系统级CLI和Bash代理失败", e);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+    
+    /**
+     * 清除系统级CLI和Bash代理
+     * 通过删除/etc/profile.d/http_proxy.sh脚本清除环境变量
+     */
+    private void cleanupSystemWideProxy() {
+        try {
+            // 删除代理配置脚本
+            Process process = Runtime.getRuntime().exec(new String[]{"sudo", "rm", "-f", "/etc/profile.d/http_proxy.sh"});
+            int exitCode = process.waitFor();
+            
+            if (exitCode == 0) {
+                logger.info("系统级CLI和Bash代理配置已删除");
+                
+                // 通知用户需要重新登录或手动清除环境变量
+                logger.info("注意：新的终端会话将不再使用代理，现有会话需要手动清除环境变量");
+            } else {
+                logger.error("删除系统级代理配置失败，退出码: {}", exitCode);
+            }
+        } catch (IOException | InterruptedException e) {
+            logger.error("清除系统级CLI和Bash代理失败", e);
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+        }
     }
 
 

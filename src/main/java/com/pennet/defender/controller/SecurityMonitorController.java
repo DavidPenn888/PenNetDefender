@@ -1,9 +1,11 @@
 package com.pennet.defender.controller;
 
+import com.pennet.defender.config.ProxyConfig;
 import com.pennet.defender.config.SecurityMonitorConfig;
 import com.pennet.defender.model.ApiResponse;
 import com.pennet.defender.model.SecurityAlert;
 import com.pennet.defender.service.SecurityMonitorService;
+import com.pennet.defender.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -75,14 +77,24 @@ public class SecurityMonitorController {
         return new ApiResponse<>(0, response, "success");
     }
 
+    @Autowired
+    private ProxyConfig proxyConfig;
+    
+    @Autowired
+    private SystemConfigService systemConfigService;
+    
     @PostMapping("/http/enable")
     public ApiResponse<Map<String, Object>> enableHttpMonitoring() {
+        // 先启用代理配置
+        systemConfigService.updateProxyConfig(true, proxyConfig.getProxyHost(), proxyConfig.getProxyPort(), proxyConfig.isSystemWideProxy());
+        
+        // 然后启动HTTP监控
         securityMonitorService.startHttpMonitoring();
         securityMonitorConfig.setHttpMonitorEnabled(true);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "HTTP监控已启用");
+        response.put("message", "HTTP监控和代理已启用");
         response.put("status", securityMonitorService.isHttpMonitoringRunning());
 
         return new ApiResponse<>(0, response, "success");
@@ -90,12 +102,16 @@ public class SecurityMonitorController {
 
     @PostMapping("/http/disable")
     public ApiResponse<Map<String, Object>> disableHttpMonitoring() throws IOException {
+        // 先停止HTTP监控
         securityMonitorService.stopHttpMonitoring();
         securityMonitorConfig.setHttpMonitorEnabled(false);
+        
+        // 然后禁用代理配置
+        systemConfigService.updateProxyConfig(false, proxyConfig.getProxyHost(), proxyConfig.getProxyPort(), proxyConfig.isSystemWideProxy());
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
-        response.put("message", "HTTP监控已禁用");
+        response.put("message", "HTTP监控和代理已禁用");
         response.put("status", securityMonitorService.isHttpMonitoringRunning());
 
         return new ApiResponse<>(0, response, "success");
