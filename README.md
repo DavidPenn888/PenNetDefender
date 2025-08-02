@@ -9,3 +9,9 @@
 5、根目录/app下运行本程序，服务端口8080，代理端口8082
 
 本项目已计划终止，不再更新。
+
+Regarding this project: It is a multifunctional Linux network security monitoring system that monitors system health status, performs automatic audit rule matching for SSH logs, conducts simple rule matching for proxy traffic, and pushes alerts to WeChat Work and DingTalk.
+
+Environment requirements: 1. Use Java 11, Spring Boot 2.7, and Maven (other versions have not been tested); 2. Install Docker, pull MySQL 8 and run it (or use other methods to connect to the database); 3. Ubuntu 22 (self-tested on other systems); 4. Install the auditd and mitmproxy plugins on Ubuntu; 5. Run this program in the root directory/app, with the service port at 8080 and the proxy port at 8082
+
+This project has been planned to be terminated and will not be updated anymore.
