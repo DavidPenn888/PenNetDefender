@@ -18,9 +18,11 @@ This project has been planned to be terminated and will not be updated anymore.
 
 【安装】【install】
 插件/Plugs：
-https://github.com/mitmproxy/mitmproxy/releases/tag/v4.0.1
+https://github.com/mitmproxy/mitmproxy/releases/tag/v8.1.1
 
-tar -zxvf mitmproxy-4.0.1-linux.tar.gz
+https://www.mitmproxy.org/downloads/#8.1.1/
+
+tar -zxvf mitmproxy-8.1.1-linux.tar.gz
 
 sudo mv mitmproxy mitmdump mitmweb /usr/bin
 
