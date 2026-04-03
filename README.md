@@ -36,3 +36,9 @@ mysql config：src/main/resources/application.properties
 可以修改配置，重新编译
 You can modify the configuration and recompile
 默认/default：root/123456
+
+CREATE DATABASE pennetdef
+
+CHARACTER SET utf8mb4
+
+COLLATE utf8mb4_general_ci;
