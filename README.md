@@ -42,3 +42,7 @@ CREATE DATABASE pennetdef
 CHARACTER SET utf8mb4
 
 COLLATE utf8mb4_general_ci;
+
+【使用】【Usage】
+
+默认用户名密码：admin/Admin123456
