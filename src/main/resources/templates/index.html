@@ -917,8 +917,12 @@
                 </div>
             </div>
             
-            <!-- 其他页面的内容 -->
-            <div v-if="['1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3'].indexOf(currentPage) === -1">
+            <div v-if="currentPage === 'logout'">
+                    <h2>正在退出登录...</h2>
+                </div>
+
+                <!-- 其他页面的内容 -->
+                <div v-if="['1-1', '1-2', '2-1', '2-2', '3-1', '3-2', '3-3', '4-1', '4-2', '4-3', 'logout'].indexOf(currentPage) === -1">
                 <h2>{{ getPageTitle() }}</h2>
                 <el-alert
                     title="该页面正在开发中"
@@ -933,7 +937,11 @@
     <script src="https://unpkg.com/vue@2.6.14/dist/vue.js"></script>
     <script src="https://unpkg.com/element-ui/lib/index.js"></script>
     <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
-    <script>
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var successMessage = /*[[${message}]]*/ null;
+        /*]]>*/
+
         new Vue({
             el: '#app',
             data() {
@@ -1071,6 +1079,10 @@
                 }
             },
             created() {
+                if (successMessage) {
+                    this.$message.success(successMessage);
+                }
+
                 this.fetchSystemStatus();
                 this.fetchThresholdAlerts();
                 this.fetchMonitorStatus();
@@ -1137,8 +1149,10 @@
                     }
                 },
                 logout() {
-                    // 调用Spring Security提供的注销功能
-                    window.location.href = '/logout';
+                    this.currentPage = 'logout';
+                    setTimeout(() => {
+                        window.location.href = '/logout';
+                    }, 500);
                 },
                 getPageTitle() {
                     const titles = {
