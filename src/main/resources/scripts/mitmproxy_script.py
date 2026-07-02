@@ -3,8 +3,11 @@
 import json
 import re
 import requests
+import urllib3
 from mitmproxy import http
 from datetime import datetime
+
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 # 配置项
 API_ENDPOINT = "https://localhost:58080/api/security/http_alert"
@@ -110,7 +113,7 @@ def send_alert(rule, flow):
         }
         
         # 发送告警到Java应用
-        response = requests.post(API_ENDPOINT, json=alert_data)
+        response = requests.post(API_ENDPOINT, json=alert_data, verify=False)
         print(f"告警已发送: {rule['alertType']} - 状态码: {response.status_code}")
     except Exception as e:
         print(f"发送告警失败: {str(e)}")
