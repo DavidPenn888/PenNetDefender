@@ -50,7 +50,7 @@ public class SecurityAlertController {
             } else {
                 timestamp = LocalDateTime.now();
             }
-            
+
             // 创建SecurityAlert对象
             SecurityAlert alert = new SecurityAlert(
                 timestamp,
@@ -60,7 +60,7 @@ public class SecurityAlertController {
                 (String) alertData.get("ipInfo"),
                 (String) alertData.getOrDefault("detailInfo", "未提供详细信息")
             );
-            
+
             // 保存告警
             securityMonitorService.saveAlert(alert);
             
