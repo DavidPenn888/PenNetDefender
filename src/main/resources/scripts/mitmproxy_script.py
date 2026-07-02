@@ -7,7 +7,7 @@ from mitmproxy import http
 from datetime import datetime
 
 # 配置项
-API_ENDPOINT = "http://localhost:58080/api/security/http_alert"
+API_ENDPOINT = "https://localhost:58080/api/security/http_alert"
 
 # 从http_rules.json加载的规则
 rules = [
