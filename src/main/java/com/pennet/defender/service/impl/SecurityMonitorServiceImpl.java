@@ -16,6 +16,8 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -78,17 +80,26 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
             loadRules(config.getSshRulePath(), sshRules);
             // 加载HTTP规则
             loadRules(config.getHttpRulePath(), httpRules);
+        } catch (Exception e) {
+            logger.error("初始化安全监控服务失败", e);
+        }
+    }
 
-            // 根据配置启动监控
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        try {
+            // 应用启动完成后，根据数据库配置启动监控
             if (config.isSshMonitorEnabled()) {
                 startSshMonitoring();
+                logger.info("根据数据库配置，自动启动SSH监控");
             }
 
             if (config.isHttpMonitorEnabled()) {
                 startHttpMonitoring();
+                logger.info("根据数据库配置，自动启动HTTP监控");
             }
         } catch (Exception e) {
-            logger.error("初始化安全监控服务失败", e);
+            logger.error("应用启动后自动启动监控失败", e);
         }
     }
 
@@ -516,13 +527,13 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
     }
 
     private String formatAlertMessage(SecurityAlert alert) {
-        return "\uD83D\uDEA8 系统告警通知 \uD83D\uDEA8\n"
-                + "**告警类型:** " + alert.getAlertType() + "\n"
-                + "**检测方式:** " + (alert.getDetectWay() == 1 ? "SSH监控" : "HTTP监控") + "\n"
-                + "**用户:** " + (alert.getUserInfo() != null ? alert.getUserInfo() : "未知") + "\n"
-                + "**IP:** " + (alert.getIpInfo() != null ? alert.getIpInfo() : "未知") + "\n"
-                + "**详细信息:** " + alert.getDetailInfo() + "\n"
-                + "**时间:** " + alert.getTimestamp();
+        return "【系统告警】应用监控告警\n"
+                + "告警类型: " + alert.getAlertType() + "\n"
+                + "检测方式: " + (alert.getDetectWay() == 1 ? "SSH监控" : "HTTP监控") + "\n"
+                + "用户: " + (alert.getUserInfo() != null ? alert.getUserInfo() : "未知") + "\n"
+                + "IP: " + (alert.getIpInfo() != null ? alert.getIpInfo() : "未知") + "\n"
+                + "详细信息: " + alert.getDetailInfo() + "\n"
+                + "时间: " + alert.getTimestamp();
     }
 
     private Map<String, Object> formatWechatMessage(String content) {

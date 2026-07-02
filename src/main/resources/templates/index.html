@@ -268,6 +268,13 @@
                         <div style="font-size: 14px; color: #606266;">
                             <p>SSH监控可以检测系统中的SSH登录尝试，识别可能的暴力破解攻击和未授权访问。</p>
                         </div>
+                        <div style="margin-top: 15px;">
+                            <h4 style="margin-bottom: 10px;">启动提示：</h4>
+                            <div style="margin-bottom: 10px;">
+                                <span style="font-weight: bold;">1、</span>
+                                <span style="font-size: 13px; color: #606266; margin-left: 5px;">需求提示：需要系统已安装启动auditd</span>
+                            </div>
+                        </div>
                     </div>
                     
                     <!-- HTTP监控状态 -->
@@ -290,6 +297,18 @@
                         </div>
                         <div style="font-size: 14px; color: #606266;">
                             <p>HTTP监控可以检测Web服务器的异常访问请求，识别可能的SQL注入、XSS攻击和其他Web安全威胁。</p>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <h4 style="margin-bottom: 10px;">启动步骤：</h4>
+                            <div style="margin-bottom: 10px;">
+                                <span style="font-weight: bold;">1、</span>
+                                <el-button type="primary" size="mini" @click="installMitmDriver" :disabled="mitmDriverInstalled">导入代理驱动</el-button>
+                                <span style="font-size: 13px; color: #606266; margin-left: 5px;">将mitm二进制文件拷贝到/usr/bin/下并生效</span>
+                            </div>
+                            <div>
+                                <span style="font-weight: bold;">2、</span>
+                                <span style="font-size: 13px; color: #606266;">点击上方开关启动代理</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1011,6 +1030,7 @@
                         sshMonitoring: false,
                         httpMonitoring: false
                     },
+                    mitmDriverInstalled: false,
                     // 异常检测告警页面数据
                     securityQueryForm: {
                         page: 1,
@@ -1465,6 +1485,21 @@
                             this.$message.error('操作出错: ' + error.message);
                             // 恢复开关状态
                             this.monitorStatus.httpMonitoring = !status;
+                        });
+                },
+
+                installMitmDriver() {
+                    axios.post('/api/traffics/mitm/install')
+                        .then(response => {
+                            if (response.data.code === 0) {
+                                this.$message.success(response.data.message);
+                                this.mitmDriverInstalled = true;
+                            } else {
+                                this.$message.error('操作失败: ' + response.data.message);
+                            }
+                        })
+                        .catch(error => {
+                            this.$message.error('操作出错: ' + error.message);
                         });
                 },
 

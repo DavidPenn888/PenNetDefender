@@ -109,10 +109,10 @@ public void saveSystemStatus(double cpuUsage, double memoryUsage, double storage
     }
 
     private void sendAlert(String alertType, String message) {
-        String formattedMessage = "**系统告警**\n\n" +
-                "**告警类型:** " + alertType + "\n" +
-                "**详情:** " + message + "\n" +
-                "**时间:** " + LocalDateTime.now();
+        String formattedMessage = "【系统告警】系统阈值告警\n" +
+                "告警类型: " + alertType + "\n" +
+                "详情: " + message + "\n" +
+                "时间: " + LocalDateTime.now();
 
         if (webHookConfig.isWechatEnable()) {
             sendWechatAlert(formattedMessage);

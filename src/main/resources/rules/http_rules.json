@@ -20,7 +20,7 @@
   {
     "ruleId": "http-004",
     "alertType": "敏感信息泄露",
-    "pattern": "(?i)(password=|token=|api_key=|secret=)",
+    "pattern": "(?i)(password=|api_key=|secret=)",
     "description": "敏感信息可能通过HTTP明文传输"
   },
   {

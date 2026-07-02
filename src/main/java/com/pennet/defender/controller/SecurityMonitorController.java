@@ -7,11 +7,16 @@ import com.pennet.defender.model.SecurityAlert;
 import com.pennet.defender.service.SecurityMonitorService;
 import com.pennet.defender.service.SystemConfigService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,7 +59,7 @@ public class SecurityMonitorController {
     @PostMapping("/ssh/enable")
     public ApiResponse<Map<String, Object>> enableSshMonitoring() {
         securityMonitorService.startSshMonitoring();
-        securityMonitorConfig.setSshMonitorEnabled(true);
+        systemConfigService.updateSshMonitorEnabled(true);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -67,7 +72,7 @@ public class SecurityMonitorController {
     @PostMapping("/ssh/disable")
     public ApiResponse<Map<String, Object>> disableSshMonitoring() {
         securityMonitorService.stopSshMonitoring();
-        securityMonitorConfig.setSshMonitorEnabled(false);
+        systemConfigService.updateSshMonitorEnabled(false);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -90,7 +95,7 @@ public class SecurityMonitorController {
         
         // 然后启动HTTP监控
         securityMonitorService.startHttpMonitoring();
-        securityMonitorConfig.setHttpMonitorEnabled(true);
+        systemConfigService.updateHttpMonitorEnabled(true);
 
         Map<String, Object> response = new HashMap<>();
         response.put("success", true);
@@ -104,7 +109,7 @@ public class SecurityMonitorController {
     public ApiResponse<Map<String, Object>> disableHttpMonitoring() throws IOException {
         // 先停止HTTP监控
         securityMonitorService.stopHttpMonitoring();
-        securityMonitorConfig.setHttpMonitorEnabled(false);
+        systemConfigService.updateHttpMonitorEnabled(false);
         
         // 然后禁用代理配置
         systemConfigService.updateProxyConfig(false, proxyConfig.getProxyHost(), proxyConfig.getProxyPort(), proxyConfig.isSystemWideProxy());
@@ -115,5 +120,31 @@ public class SecurityMonitorController {
         response.put("status", securityMonitorService.isHttpMonitoringRunning());
 
         return new ApiResponse<>(0, response, "success");
+    }
+
+    @PostMapping("/mitm/install")
+    public ApiResponse<Void> installMitmDriver() {
+        String[] mitmFiles = {"mitmdump", "mitmproxy", "mitmweb"};
+        String targetDir = "/usr/bin/";
+
+        try {
+            for (String fileName : mitmFiles) {
+                ClassPathResource resource = new ClassPathResource("mitm/" + fileName);
+                if (!resource.exists()) {
+                    return new ApiResponse<>(1, null, "文件不存在: " + fileName);
+                }
+
+                File targetFile = new File(targetDir + fileName);
+                try (InputStream inputStream = resource.getInputStream()) {
+                    Files.copy(inputStream, targetFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                targetFile.setExecutable(true, false);
+            }
+
+            return new ApiResponse<>(0, null, "代理驱动已成功导入并生效");
+        } catch (IOException e) {
+            return new ApiResponse<>(1, null, "导入代理驱动失败: " + e.getMessage());
+        }
     }
 }

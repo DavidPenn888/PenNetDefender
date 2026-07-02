@@ -1,6 +1,7 @@
 package com.pennet.defender.service;
 
 import com.pennet.defender.config.ProxyConfig;
+import com.pennet.defender.config.SecurityMonitorConfig;
 import com.pennet.defender.config.ThresholdConfig;
 import com.pennet.defender.config.WebHookConfig;
 import com.pennet.defender.model.SystemConfig;
@@ -25,6 +26,9 @@ public class SystemConfigService {
     
     @Autowired
     private ProxyConfig proxyConfig;
+    
+    @Autowired
+    private SecurityMonitorConfig securityMonitorConfig;
 
     // 配置键常量
     private static final String CPU_THRESHOLD_KEY = "threshold.cpu";
@@ -39,6 +43,9 @@ public class SystemConfigService {
     private static final String PROXY_HOST_KEY = "security.proxy.host";
     private static final String PROXY_PORT_KEY = "security.proxy.port";
     private static final String PROXY_SYSTEM_WIDE_KEY = "security.proxy.system.wide";
+    // 监控配置键常量
+    private static final String SSH_MONITOR_ENABLED_KEY = "security.monitor.ssh.enabled";
+    private static final String HTTP_MONITOR_ENABLED_KEY = "security.monitor.http.enabled";
 
     /**
      * 应用启动时初始化配置
@@ -62,6 +69,10 @@ public class SystemConfigService {
         initConfig(PROXY_HOST_KEY, proxyConfig.getProxyHost(), "代理主机地址");
         initConfig(PROXY_PORT_KEY, String.valueOf(proxyConfig.getProxyPort()), "代理端口");
         initConfig(PROXY_SYSTEM_WIDE_KEY, String.valueOf(proxyConfig.isSystemWideProxy()), "系统级代理启用状态");
+
+        // 初始化监控配置
+        initConfig(SSH_MONITOR_ENABLED_KEY, String.valueOf(securityMonitorConfig.isSshMonitorEnabled()), "SSH监控启用状态");
+        initConfig(HTTP_MONITOR_ENABLED_KEY, String.valueOf(securityMonitorConfig.isHttpMonitorEnabled()), "HTTP监控启用状态");
 
         // 从数据库加载配置到内存
         loadConfigFromDatabase();
@@ -91,6 +102,9 @@ public class SystemConfigService {
         
         // 加载代理配置
         loadProxyConfig();
+        
+        // 加载监控配置
+        loadMonitorConfig();
     }
 
     /**
@@ -177,6 +191,33 @@ public class SystemConfigService {
         
         getConfigValue(PROXY_SYSTEM_WIDE_KEY).ifPresent(value -> 
             proxyConfig.setSystemWideProxy(Boolean.parseBoolean(value)));
+    }
+    
+    /**
+     * 加载监控配置
+     */
+    private void loadMonitorConfig() {
+        getConfigValue(SSH_MONITOR_ENABLED_KEY).ifPresent(value -> 
+            securityMonitorConfig.setSshMonitorEnabled(Boolean.parseBoolean(value)));
+        
+        getConfigValue(HTTP_MONITOR_ENABLED_KEY).ifPresent(value -> 
+            securityMonitorConfig.setHttpMonitorEnabled(Boolean.parseBoolean(value)));
+    }
+    
+    /**
+     * 更新SSH监控配置
+     */
+    public void updateSshMonitorEnabled(boolean enabled) {
+        securityMonitorConfig.setSshMonitorEnabled(enabled);
+        updateConfig(SSH_MONITOR_ENABLED_KEY, String.valueOf(enabled));
+    }
+
+    /**
+     * 更新HTTP监控配置
+     */
+    public void updateHttpMonitorEnabled(boolean enabled) {
+        securityMonitorConfig.setHttpMonitorEnabled(enabled);
+        updateConfig(HTTP_MONITOR_ENABLED_KEY, String.valueOf(enabled));
     }
     
     /**

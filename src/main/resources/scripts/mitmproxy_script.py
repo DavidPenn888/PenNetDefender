@@ -32,7 +32,7 @@ rules = [
     {
         "ruleId": "http-004",
         "alertType": "敏感信息泄露",
-        "pattern": r"(?i)(password=|token=|api_key=|secret=)",
+        "pattern": r"(?i)(password=|api_key=|secret=)",
         "description": "敏感信息可能通过HTTP明文传输"
     },
     {
@@ -118,7 +118,7 @@ def send_alert(rule, flow):
 def request(flow):
     """处理每个HTTP请求"""
     # 跳过对Java应用自身API的请求，避免无限循环
-    if "localhost:8080/api" in flow.request.url or API_ENDPOINT in flow.request.url:
+    if "localhost:58080/api" in flow.request.url or API_ENDPOINT in flow.request.url:
         return
     
     # 检查请求是否匹配任何安全规则
