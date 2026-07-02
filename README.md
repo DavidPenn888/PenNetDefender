@@ -2,7 +2,7 @@
 
 环境要求：
 
-1、使用Java11、Spring Boot2.7、Maven3、Python3.6.8（其他版本未测试）；
+1、使用Java11、Python3.6.8（其他版本未测试）和Spring Boot2.7、Maven3；
 
 2、安装docker，拉取mysql8并运行（或使用其他方式对接数据库）；
 
