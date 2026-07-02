@@ -3,11 +3,11 @@
 import json
 import re
 import requests
-import urllib3
+import warnings
 from mitmproxy import http
 from datetime import datetime
 
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+warnings.filterwarnings("ignore", message="Unverified HTTPS request")
 
 # 配置项
 API_ENDPOINT = "https://localhost:58080/api/security/http_alert"

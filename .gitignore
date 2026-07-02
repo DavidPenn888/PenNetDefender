@@ -31,3 +31,5 @@ build/
 
 ### VS Code ###
 .vscode/
+/.vite/deps_temp_a6050cbe/package.json
+/package-lock.json
