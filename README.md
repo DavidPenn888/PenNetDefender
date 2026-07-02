@@ -64,6 +64,10 @@ CHARACTER SET utf8mb4
 
 COLLATE utf8mb4_general_ci;
 
+一键创建mysql8的docker脚本：docker run -d --name mysql8_pennetdef --restart unless-stopped -e MYSQL_ROOT_PASSWORD=123456 -e MYSQL_DATABASE=pennetdef -e MYSQL_USER=user -e MYSQL_PASSWORD=123456 -p 3306:3306 mysql:8
+
+echo "可能需要赋权允许root外部登录"
+
 3、运行jar
 
 nohup java -jar xxx.jar &
