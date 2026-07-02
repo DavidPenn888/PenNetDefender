@@ -266,7 +266,7 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
             
             // 启动mitmproxy代理
             String mitmPath = "mitmdump"; // 使用系统PATH中的mitmdump命令
-            String[] command = {mitmPath, "--mode", "regular@" + proxyPort, "-s", scriptPath};
+            String[] command = {mitmPath, "--listen-port", String.valueOf(proxyPort), "-s", scriptPath};
             
             ProcessBuilder processBuilder = new ProcessBuilder(command);
             processBuilder.redirectErrorStream(true); // 合并标准输出和错误输出
@@ -280,7 +280,13 @@ public class SecurityMonitorServiceImpl implements SecurityMonitorService {
                         logger.info("mitmproxy: {}", line);
                     }
                 } catch (IOException e) {
-                    logger.error("读取mitmproxy输出失败", e);
+                    // 当我们主动停止监控时，这个异常是预期的，因为进程被销毁，流被关闭。
+                    // 只有在监控仍在运行时出现此异常，才将其视为错误。
+                    if (httpMonitorRunning.get()) {
+                        logger.error("读取mitmproxy输出时发生意外错误", e);
+                    } else {
+                        logger.info("mitmproxy输出流已正常关闭。");
+                    }
                 }
             }).start();
             
