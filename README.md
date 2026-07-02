@@ -1,23 +1,40 @@
-关于本项目：
-用于监控系统健康状态、SSH日志自动审计规则匹配、代理流量进行简单的规则匹配，推送企业微信、钉钉告警，多功能为一体的Linux网络安全监控系统。
+【关于本项目】【PenNetDefender Project】
+
+关于本项目：用于监控系统健康状态、SSH日志自动审计规则匹配、代理流量进行简单的规则匹配，推送企业微信、钉钉告警，多功能为一体的Linux网络安全监控系统。
 
 环境要求：
-1、使用Java11、Spring Boot2.7、Maven3（其他版本未测试）；
+
+1、使用Java11、Python3.6.8（其他版本未测试）和Spring Boot2.7、Maven3；
+
 2、安装docker，拉取mysql8并运行（或使用其他方式对接数据库）；
+
 3、Ubuntu 22（其他系统自测）；
+
 4、Ubuntu 安装 auditd、mitmproxy 两个插件；
-5、根目录/app下运行本程序，服务端口8080，代理端口8082
+
+5、根目录/app下运行本程序，服务端口58080，代理端口8082
 
 本项目已计划终止，不再更新。
 
 Regarding this project: It is a multifunctional Linux network security monitoring system that monitors system health status, performs automatic audit rule matching for SSH logs, conducts simple rule matching for proxy traffic, and pushes alerts to WeChat Work and DingTalk.
 
-Environment requirements: 1. Use Java 11, Spring Boot 2.7, and Maven (other versions have not been tested); 2. Install Docker, pull MySQL 8 and run it (or use other methods to connect to the database); 3. Ubuntu 22 (self-tested on other systems); 4. Install the auditd and mitmproxy plugins on Ubuntu; 5. Run this program in the root directory/app, with the service port at 8080 and the proxy port at 8082
+Environment requirements: 
+
+1. Use Java 11, Spring Boot 2.7, and Maven (other versions have not been tested);
+2. Install Docker, pull MySQL 8 and run it (or use other methods to connect to the database);
+3. Ubuntu 22 (self-tested on other systems);
+4. Install the auditd and mitmproxy plugins on Ubuntu;
+5. Run this program in the root directory/app, with the service port at 58080 and the proxy port at 8082
 
 This project has been planned to be terminated and will not be updated anymore.
 
+
 【安装】【install】
-插件/Plugs：
+
+1、安装插件/Plugs（新版已经内置，可页面一键安装，但需要信任CA）：
+
+1.1、mitmproxy8.1.1
+
 https://github.com/mitmproxy/mitmproxy/releases/tag/v8.1.1
 
 https://www.mitmproxy.org/downloads/#8.1.1/
@@ -26,13 +43,19 @@ tar -zxvf mitmproxy-8.1.1-linux.tar.gz
 
 sudo mv mitmproxy mitmdump mitmweb /usr/bin
 
+注意本机需要信任mitmdump自签CA证书 Trust mitmdump self-signed CA certificate
+
 可参考/reference：https://www.cnblogs.com/yikemogutou/p/12465948.html
+
+1.2、auditd
 
 dnf install audit
 
 yum install audit
 
 apt install auditd audispd-plugins
+
+2、mysql数据库配置
 
 mysql config：src/main/resources/application.properties
 可以修改配置，重新编译
@@ -45,6 +68,14 @@ CHARACTER SET utf8mb4
 
 COLLATE utf8mb4_general_ci;
 
-【使用】【Usage】
+一键创建mysql8的docker脚本：docker run -d --name mysql8_pennetdef --restart unless-stopped -e MYSQL_ROOT_PASSWORD=123456 -e MYSQL_DATABASE=pennetdef -e MYSQL_USER=user -e MYSQL_PASSWORD=123456 -p 3306:3306 mysql:8
+
+echo "可能需要赋权允许root外部登录"
+
+3、运行jar
+
+nohup java -jar xxx.jar &
+
+4、登录https://ip:58080/
 
 默认用户名密码：admin/Admin123456
